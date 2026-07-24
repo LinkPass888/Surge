@@ -1,7 +1,7 @@
 #!name=PingMe 签到模块
 #!desc=获取 PingMe 签到参数并执行每日定时签到任务。
 #!author=fmz200
-#!category=任务
+#!category=定时任务
 
 [Script]
 # 获取签到参数 (需手动触发一次：打开 PingMe App 并进入相关余额页面)
