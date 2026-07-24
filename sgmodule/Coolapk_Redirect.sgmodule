@@ -1,5 +1,6 @@
 #!name=酷安外链自动跳转
 #!desc=点击 link 后直接跳转到真实链接
+#!category=应用增强
 #!system=ios
 
 [Script]
