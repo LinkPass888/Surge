@@ -3,5 +3,7 @@
 #!category=应用增强
 
 [Script]
-# hostname = %APPEND% app.bilibili.com
+
 画质解锁 = type=http-response, pattern=^https:\/\/app\.bilibili\.com\/x\/v2\/account\/myinfo\?, script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/B站画质解锁.js, requires-body=true, timeout=10
+
+hostname = %APPEND% app.bilibili.com
