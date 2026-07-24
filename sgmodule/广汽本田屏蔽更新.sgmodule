@@ -4,7 +4,7 @@
 
 [Script]
 # 拦截并修改更新检测接口
-ghac_no_update = type=http-response, pattern=^https?:\/\/gha\.ghac\.cn:8081\/base\/app\/api\/ad\/startFind, requires-body=1, max-size=0, script-path=ghac_version.js
+ghac_no_update = type=http-response, pattern=^https?:\/\/gha\.ghac\.cn:8081\/base\/app\/api\/ad\/startFind, requires-body=1, max-size=0, script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ghac_version.js
 
 [MITM]
 hostname = %APPEND% gha.ghac.cn:8081
