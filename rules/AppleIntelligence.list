@@ -1,0 +1,79 @@
+#NAME: AppleIntelligence
+#AUTHOR: Serein1202
+#REPO: https://github.com/Serein1202/ios_rule_script-blackmatrix7
+#UPDATED: 2026-06-15 17:25:13
+#MERGED: 2026-06-15 17:56
+#TOTAL: 35
+
+//Apple Intelligence 核心域名
+DOMAIN,appleintelligence.apple.com 
+DOMAIN,appleintelligence2.apple.com 
+DOMAIN,genai.apple.com
+
+//Siri AI / 新版Siri独立App
+DOMAIN,siri.apple.com 
+DOMAIN,siri-api.apple.com 
+DOMAIN,siri-intent.apple.com 
+DOMAIN,siri-companion.apple.com 
+DOMAIN,intelligence.apple.com
+
+//Apple AI 云端模型（AFM)
+DOMAIN,afm.apple.com 
+DOMAIN,afm-api.apple.com 
+DOMAIN,afm.cloud.apple.com
+
+//Apple 官方 API
+DOMAIN,api.apple.com 
+DOMAIN,api2.apple.com 
+DOMAIN,api5.apple.com 
+DOMAIN,appleinc.akadns.net 
+DOMAIN-SUFFIX,apple.com.akadns.net
+
+//Gemini / Google大模型（Apple-Gemini合作后端）
+DOMAIN,gemini.apple.com 
+DOMAIN,geminiapis.apple.com 
+DOMAIN,geminiprops.apple.com 
+DOMAIN-SUFFIX,generativeai.google.com 
+DOMAIN-SUFFIX,gemini.google.com 
+DOMAIN-SUFFIX,ai.google.dev 
+DOMAIN-SUFFIX,aiplatform.googleapis.com
+
+//Private Relay / iCloud+ 中继（来自Serein1202）
+DOMAIN-SUFFIX,smoot.apple.com 
+DOMAIN-SUFFIX,apple-relay.apple.com 
+DOMAIN-SUFFIX,apple-relay.cloudflare.com 
+DOMAIN-SUFFIX,apple-relay.fastly-edge.com 
+DOMAIN-SUFFIX,apple-relay.akamaized.net 
+DOMAIN-SUFFIX,apple-relay.mask.apple-dns.net 
+DOMAIN-SUFFIX,gateway.icloud.com 
+DOMAIN-SUFFIX,cp4.cloudflare.com 
+DOMAIN-SUFFIX,guzzoni.apple.com 
+DOMAIN-SUFFIX,gspe1-ssl.ls.apple.com
+
+//App Store 静态资源
+DOMAIN-SUFFIX,apps.mzstatic.com
+
+//关键字匹配（兜底新增子域名）
+DOMAIN-KEYWORD,appleintelligence 
+DOMAIN-KEYWORD,genai 
+DOMAIN-KEYWORD,siri-ai 
+DOMAIN-KEYWORD,siri_ai 
+DOMAIN-KEYWORD,applellm 
+DOMAIN-KEYWORD,apple-llm 
+DOMAIN-KEYWORD,afm-cloud
+
+//IP段兜底
+IP-CIDR,17.0.0.0/8,no-resolve 
+IP-CIDR,142.250.0.0/15,no-resolve 
+IP-CIDR,172.217.0.0/16,no-resolve 
+IP-CIDR,216.58.192.0/19,no-resolve 
+IP-CIDR,74.125.0.0/16,no-resolve
+
+//额外新增
+DOMAIN,mask-api.fe.apple-dns.net
+DOMAIN,mask-api.icloud.com
+DOMAIN,mask-t.apple-dns.net
+DOMAIN,mask.apple-dns.net
+DOMAIN-SUFFIX,ls.apple.com
+DOMAIN-SUFFIX,mask-h2.icloud.com
+DOMAIN-SUFFIX,mask.icloud.com

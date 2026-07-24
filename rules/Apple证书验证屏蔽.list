@@ -1,0 +1,9 @@
+# Apple 证书屏蔽验证规则（不带策略）
+
+DOMAIN,ocsp.apple.com
+DOMAIN,ocsp2.apple.com
+DOMAIN,valid.apple.com
+
+# 推荐加强（防止其他验证通道）
+DOMAIN,ocsp2-lb.apple.com
+DOMAIN,certs.apple.com

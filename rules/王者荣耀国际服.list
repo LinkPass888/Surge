@@ -1,0 +1,10 @@
+DOMAIN-SUFFIX,hok-dr.intlgame.com
+DOMAIN-SUFFIX,hok.intlgame.com
+DOMAIN-SUFFIX,intlgame.com
+DOMAIN-SUFFIX,sgameglobal.com
+DOMAIN-SUFFIX,appsflyersdk.com
+DOMAIN-KEYWORD,sgameglobal.com
+IP-CIDR, 183.192.65.101/16, no-resolve
+IP-CIDR, 43.132.55.55/16, no-resolve
+DOMAIN-SUFFIX,game.eve.mdt.qq.com // Added for: game.eve.mdt.qq.com:8081
+DOMAIN-SUFFIX,sg.galileotelemetry.tencent.com // Added for: sg.galileotelemetry.tencent.com:443
