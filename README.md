@@ -2,9 +2,9 @@
 
 surge 相关自用配置、脚本与模块
 
-- **发布频道**：[@linkpass666](https://t.me/linkpass666)
+个人收集和维护的 Surge配置文件仓库，包含常用规则、JavaScript 脚本和 Surge 模块。
 
-个人收集和维护的 Surge（iOS/macOS 网络代理工具）配置文件仓库，包含常用规则、JavaScript 脚本和 Surge 模块。
+**发布频道**：[@linkpass666](https://t.me/linkpass666)
 
 ## 仓库目录
 
