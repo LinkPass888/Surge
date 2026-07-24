@@ -1,0 +1,14 @@
+#!name=PingMe 签到模块
+#!desc=获取 PingMe 签到参数并执行每日定时签到任务。
+#!author=fmz200
+#!category=任务
+
+[Script]
+# 获取签到参数 (需手动触发一次：打开 PingMe App 并进入相关余额页面)
+#PingMe获取签到参数 = type=http-request, pattern=^https:\/\/api\.pingmeapp\.net\/app\/queryBalanceAndBonus, script-path=https://raw.githubusercontent.com/fmz200/wool_scripts/main/Scripts/cookie/get_cookie.js, timeout=60
+
+# 定时签到任务 (每天 08:30 和 20:30 执行)
+PingMe签到 = type=cron, cronexp="46 7,19 * * *", script-path=https://raw.githubusercontent.com/fmz200/wool_scripts/main/Scripts/PingMe/PingMeSignin.js, timeout=300, wake-system=1
+
+[MITM]
+hostname = %APPEND% api.pingmeapp.net

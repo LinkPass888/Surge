@@ -1,0 +1,6 @@
+#!name=B站解锁高画质
+#!desc=B站解锁高画质
+
+[Script]
+# hostname = app.bilibili.com
+画质解锁 = type=http-response, pattern=^https:\/\/app\.bilibili\.com\/x\/v2\/account\/myinfo\?, script-path=B站画质解锁.js, requires-body=true, timeout=10

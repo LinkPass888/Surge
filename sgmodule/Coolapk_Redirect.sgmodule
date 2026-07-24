@@ -1,0 +1,9 @@
+#!name=酷安外链自动跳转
+#!desc=点击 link 后直接跳转到真实链接
+#!system=ios
+
+[Script]
+酷安外链跳转 = type=http-response,pattern=^https:\/\/www\.coolapk\.com\/link,script-path=Coolapk_Redirect.js,requires-body=false
+
+[MITM]
+hostname = %APPEND% www.coolapk.com

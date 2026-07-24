@@ -1,0 +1,10 @@
+#!name=广汽本田 App 屏蔽更新
+#!desc=通过修改 8081 端口下的 startFind 接口响应体，将 versionType 改为 1 以跳过更新检测。
+#!category=个人修改
+
+[Script]
+# 拦截并修改更新检测接口
+ghac_no_update = type=http-response, pattern=^https?:\/\/gha\.ghac\.cn:8081\/base\/app\/api\/ad\/startFind, requires-body=1, max-size=0, script-path=ghac_version.js
+
+[MITM]
+hostname = %APPEND% gha.ghac.cn:8081
