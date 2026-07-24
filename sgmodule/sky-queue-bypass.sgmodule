@@ -7,4 +7,4 @@
 hostname = %APPEND% live-queue-sky-merge.game.163.com
 
 [Script]
-sky-queue-bypass = type=http-response, pattern=^https:\/\/live-queue-sky-merge\.game\.163\.com\/queue, requires-body=1, max-size=0, script-path=sky-queue-bypass.js
+sky-queue-bypass = type=http-response, pattern=^https:\/\/live-queue-sky-merge\.game\.163\.com\/queue, requires-body=1, max-size=0, script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/sky-queue-bypass.js
