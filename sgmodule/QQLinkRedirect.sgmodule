@@ -1,0 +1,34 @@
+#!name=QQ链接跳转优化
+#!desc=解除QQ中间页跳转，直接打开原始链接
+#!author=LinkPass888
+#!category=应用增强
+
+[URL Rewrite]
+
+# c.pc.qq.com middlem
+^https:\/\/c\.pc\.qq\.com\/middlem\.html\?pfurl=(http.*)&pfuin=.* 307 $1
+
+# c.pc.qq.com middlect
+^https:\/\/c\.pc\.qq\.com\/middlect\.html\?pfuin=.*&pfurl=(http.*)&gjsublevel=.* 307 $1
+
+# c.pc.qq.com middlect iscontinue
+^https:\/\/c\.pc\.qq\.com\/middlect\.html\?iscontinue=.*pfurl=(http.*)&pfuin=.* 307 $1
+
+# pingtas middlem
+^https:\/\/pingtas\.qq\.com\/webview\/pingd\?dm=c\.pc\.qq\.com&pvi=\d+&si=s\d+&url=\/middlem\.html\?pfurl%3d(http.*)%26pfuin.* 307 $1
+
+# QQConnect get_urlinfo
+^https:\/\/cgi\.connect\.qq\.com\/qqconnectopen\/get_urlinfoForQQV2\?url=(http.*) 307 $1
+
+# c.pc.qq.com index
+^https:\/\/c\.pc\.qq\.com\/index\.html\?pfurl=(http.*)&pfuin=.* 307 $1
+
+# c.pc.qq.com ios
+^https:\/\/c\.pc\.qq\.com\/ios\.html\?url=(http.*)&level=.* 307 $1
+
+# pingtas ios
+^https:\/\/pingtas\.qq\.com\/webview\/pingd\?dm=c\.pc\.qq\.com&pvi=\d+&si=s\d+&url=\/ios\.html\?url%3d(http.*)%26level.* 307 $1
+
+
+[MITM]
+hostname = %APPEND% pingtas.qq.com,c.pc.qq.com,cgi.connect.qq.com
