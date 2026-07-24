@@ -1,9 +1,9 @@
 #NAME: AppleIntelligence
-#AUTHOR: Serein1202
+#AUTHOR: LinkPass888
 #REPO: https://github.com/Serein1202/ios_rule_script-blackmatrix7
-#UPDATED: 2026-06-15 17:25:13
+#UPDATED: 2026-07-20 13:32
 #MERGED: 2026-06-15 17:56
-#TOTAL: 35
+#TOTAL: 53
 
 //Apple Intelligence 核心域名
 DOMAIN,appleintelligence.apple.com 
