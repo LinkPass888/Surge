@@ -1,5 +1,6 @@
 #!name=B站解锁高画质
 #!desc=B站解锁高画质
+#!category=应用增强
 
 [Script]
 # hostname = app.bilibili.com
