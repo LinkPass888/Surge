@@ -1,7 +1,7 @@
-#!name=Sky 光·遇 排队插队
+#!name=Sky光·遇 排队插队
 #!desc=修改 live-queue-sky-merge.game.163.com/queue 的响应，伪装成排队通过（仅客户端生效，服务器仍可能拒绝）
-#!author=Minis
-#!category=Games
+#!author=LinkPass888
+#!category=应用增强
 
 [MITM]
 hostname = %APPEND% live-queue-sky-merge.game.163.com
