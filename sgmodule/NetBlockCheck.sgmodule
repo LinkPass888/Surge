@@ -1,0 +1,11 @@
+#!name=节点阻断检测
+#!desc=检测当前 Surge 出站节点是否可达，判断是否被运营商/GFW 阻断。基于 RavelloH 的 block_check.js 改写为 Surge Panel 版本。
+#!author=LinkPass888&RavelloH
+#!category=面板
+#!system=ios
+
+[Panel]
+BlockCheck = title="节点阻断检测",content="点击刷新进行检测",style=info,icon=bolt.horizontal.icloud.fill,icon-color=#007AFF,script-name=BlockCheck
+
+[Script]
+BlockCheck = type=generic,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/block_check_surge.js,timeout=30
