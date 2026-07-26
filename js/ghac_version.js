@@ -6,7 +6,7 @@ let obj = JSON.parse(body);
 if (obj.data && obj.data.versionType) {
     obj.data.versionType = "1"; 
     // 额外保险：如果你想彻底一点，可以把版本号改低或者清空下载链接
-    //obj.data.versionNo = "3.1.2";
+    obj.data.versionNo = "3.1.2";
     // obj.data.downloadUrl = "";
 }
 
