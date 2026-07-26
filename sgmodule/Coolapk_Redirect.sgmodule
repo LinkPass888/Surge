@@ -5,7 +5,7 @@
 
 
 [URL Rewrite]
-^https?://www\.coolapk\.com/link\?(?:.*?&)?url=([^&#]+) $1 302
+^https?://www.coolapk.com/link?(?:.?&)?url=([^&#]+).$ $1 302
 
 [MITM]
 hostname = %APPEND% www.coolapk.com
