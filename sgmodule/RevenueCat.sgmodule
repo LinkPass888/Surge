@@ -4,31 +4,38 @@
 #!author=LinkPass888
 #!category=Crack
 
-[Argument]
-# 在 Surge 模块设置中，修改下方的值为 on 或 off
-chxm1023 = on
-Guding88 = on
-ddgksf2013 = on
-Yu9191 = on
-
-[MITM]
-hostname = %APPEND% api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
-
-[Script]
-# 使用 Surge 的 argument 参数传递功能
-# 脚本会接收到这个参数，并根据脚本内的逻辑（if argument == 'off'）执行 $done({})
-
-# chxm1023
-RevenueCat-chxm1023 = type=http-response,pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$),requires-body=true,max-size=0,script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js,argument={{chxm1023}}
-
-# Guding88
-RevenueCat-Guding88 = type=http-response,pattern=^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$),requires-body=true,max-size=0,script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js,argument={{Guding88}}
-
-# ddgksf2013
-RevenueCat-ddgksf2013 = type=http-response,pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$),requires-body=true,max-size=0,script-path=https://ddgksf2013.top/scripts/revenuecat.vip.js,argument={{ddgksf2013}}
-
-# Yu9191
-RevenueCat-Yu9191 = type=http-response,pattern=^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$),requires-body=true,max-size=0,script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js,argument={{Yu9191}}
+#!argument$chxm1023=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=on, desc="chxm1023 的通用解锁脚本"
+#!argument$guding88=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=off, desc="Guding88 的通用解锁脚本"
+#!argument$ddgksf2013=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=off, desc="ddgksf2013 的通用解锁脚本"
+#!argument$yu9191=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=off, desc="Yu9191 的通用解锁脚本"
 
 [URL Rewrite]
 ^https:\/\/api\.lianjiu\.fun\/app\/api\/v1\/profile - reject
+
+[Script]
+# chxm1023
+#{{{chxm1023=on
+RevenueCat_chxm1023_res = type=http-response, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body=true, max-size=0
+RevenueCat_chxm1023_req = type=http-request, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body=false
+#}}}
+
+# Guding88
+#{{{guding88=on
+RevenueCat_Guding88_res = type=http-response, pattern=^https?:\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$), script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=true, max-size=0
+RevenueCat_Guding88_req = type=http-request, pattern=^https?:\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$), script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=false
+#}}}
+
+# ddgksf2013
+#{{{ddgksf2013=on
+RevenueCat_ddgksf2013_res = type=http-response, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://ddgksf2013.top/scripts/revenuecat.vip.js, requires-body=true, max-size=0
+RevenueCat_ddgksf2013_req = type=http-request, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://raw.githubusercontent.com/ddgksf2013/Scripts/master/deleteHeader.js, requires-body=false
+#}}}
+
+# Yu9191
+#{{{yu9191=on
+RevenueCat_Yu9191_res = type=http-response, pattern=^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$), script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=true, max-size=0
+RevenueCat_Yu9191_req = type=http-request, pattern=^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$), script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=false
+#}}}
+
+[MITM]
+hostname = %APPEND% api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
