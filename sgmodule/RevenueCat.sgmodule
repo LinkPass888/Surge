@@ -1,0 +1,37 @@
+#!name = RevenueCat 解锁
+#!desc = RevenueCat 系列解锁合集 (请在脚本中选择启用一个作者的脚本)
+#!system = ios
+#!author=LinkPass888
+#!category=crack
+
+[MITM]
+hostname = %APPEND% api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
+
+[Script]
+# 请根据需要取消注释其中一个作者的脚本，同时开启多个可能会导致冲突
+# 1. chxm1023
+# [RevenueCat-chxm1023-Resp]
+# http-response ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path = https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body = true, tag = [RevenueCat]会员解锁响应@chxm1023
+# [RevenueCat-chxm1023-Req]
+# http-request ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path = https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body = false, tag = [RevenueCat]会员解锁请求@chxm1023
+
+# 2. Guding88
+# [RevenueCat-Guding88-Resp]
+# http-response ^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$) script-path = https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body = true, tag = [RevenueCat]会员解锁响应@Guding88
+# [RevenueCat-Guding88-Req]
+# http-request ^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$) script-path = https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body = false, tag = [RevenueCat]会员解锁请求@Guding88
+
+# 3. ddgksf2013
+# [RevenueCat-ddgksf2013-Resp]
+# http-response ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path = https://ddgksf2013.top/scripts/revenuecat.vip.js, requires-body = true, tag = [RevenueCat]会员解锁响应@ddgksf2013
+# [RevenueCat-ddgksf2013-Req]
+# http-request ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path = https://raw.githubusercontent.com/ddgksf2013/Scripts/master/deleteHeader.js, requires-body = false, tag = [RevenueCat]会员解锁请求@ddgksf2013
+
+# 4. Yu9191
+# [RevenueCat-Yu9191-Resp]
+# http-response ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$) script-path = https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body = true, tag = [RevenueCat]会员解锁响应@Yu9191
+# [RevenueCat-Yu9191-Req]
+# http-request ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$) script-path = https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body = false, tag = [RevenueCat]会员解锁请求@Yu9191
+
+[URL Rewrite]
+^https:\/\/api\.lianjiu\.fun\/app\/api\/v1\/profile - reject
