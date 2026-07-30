@@ -2,7 +2,7 @@
 #!desc = RevenueCat 系列解锁合集 (请在脚本中选择启用一个作者的脚本)
 #!system = ios
 #!author=LinkPass888
-#!category=crack
+#!category=Crack
 
 [MITM]
 hostname = %APPEND% api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
