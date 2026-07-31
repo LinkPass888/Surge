@@ -3,12 +3,7 @@
 #!system = ios
 #!author=LinkPass888
 #!category=Crack
-
-[Argument]
-RevenueCat_chxm1023 = false
-RevenueCat_Guding88 = false
-RevenueCat_ddgksf2013 = false
-RevenueCat_Yu9191 = false
+#!arguments = RevenueCat_chxm1023=false&RevenueCat_Guding88=false&RevenueCat_ddgksf2013=false&RevenueCat_Yu9191=false
  
 [MITM]
 hostname = api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
