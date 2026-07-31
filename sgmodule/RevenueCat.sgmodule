@@ -4,38 +4,24 @@
 #!author=LinkPass888
 #!category=Crack
 
-#!argument$chxm1023=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=on, desc="chxm1023 的通用解锁脚本"
-#!argument$guding88=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=off, desc="Guding88 的通用解锁脚本"
-#!argument$ddgksf2013=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=off, desc="ddgksf2013 的通用解锁脚本"
-#!argument$yu9191=type=select, options=[{"title":"开启", "value":"on"}, {"title":"关闭", "value":"off"}], default=off, desc="Yu9191 的通用解锁脚本"
-
-[URL Rewrite]
-^https:\/\/api\.lianjiu\.fun\/app\/api\/v1\/profile - reject
-
-[Script]
-# chxm1023
-#{{{chxm1023=on
-RevenueCat_chxm1023_res = type=http-response, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body=true, max-size=0
-RevenueCat_chxm1023_req = type=http-request, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body=false
-#}}}
-
-# Guding88
-#{{{guding88=on
-RevenueCat_Guding88_res = type=http-response, pattern=^https?:\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$), script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=true, max-size=0
-RevenueCat_Guding88_req = type=http-request, pattern=^https?:\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$), script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=false
-#}}}
-
-# ddgksf2013
-#{{{ddgksf2013=on
-RevenueCat_ddgksf2013_res = type=http-response, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://ddgksf2013.top/scripts/revenuecat.vip.js, requires-body=true, max-size=0
-RevenueCat_ddgksf2013_req = type=http-request, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$), script-path=https://raw.githubusercontent.com/ddgksf2013/Scripts/master/deleteHeader.js, requires-body=false
-#}}}
-
-# Yu9191
-#{{{yu9191=on
-RevenueCat_Yu9191_res = type=http-response, pattern=^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$), script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=true, max-size=0
-RevenueCat_Yu9191_req = type=http-request, pattern=^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$), script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=false
-#}}}
-
+[Argument]
+RevenueCat_chxm1023 = false
+RevenueCat_Guding88 = false
+RevenueCat_ddgksf2013 = false
+RevenueCat_Yu9191 = false
+ 
 [MITM]
-hostname = %APPEND% api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
+hostname = api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
+ 
+[URL Rewrite]
+^https:\/\/api\.lianjiu\.fun\/app\/api\/v1\/profile _ reject
+ 
+[Script]
+http-request ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body=false, tag=[RevenueCat] 会员解锁请求@chxm1023, enable=%{RevenueCat_chxm1023}
+http-response ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path=https://raw.githubusercontent.com/chxm1023/Rewrite/main/Reheji.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@chxm1023, enable=%{RevenueCat_chxm1023}
+http-request ^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$) script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=false, tag=[RevenueCat] 会员解锁请求@Guding88, enable=%{RevenueCat_Guding88}
+http-response ^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$) script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@Guding88, enable=%{RevenueCat_Guding88}
+http-request ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path=https://raw.githubusercontent.com/ddgksf2013/Scripts/master/deleteHeader.js, requires-body=false, tag=[RevenueCat] 会员解锁请求@ddgksf2013, enable=%{RevenueCat_ddgksf2013}
+http-response ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path=https://ddgksf2013.top/scripts/revenuecat.vip.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@ddgksf2013, enable=%{RevenueCat_ddgksf2013}
+http-request ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$) script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=false, tag=[RevenueCat] 会员解锁请求@Yu9191, enable=%{RevenueCat_Yu9191}
+http-response ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$) script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@Yu9191, enable=%{RevenueCat_Yu9191}
