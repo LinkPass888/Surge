@@ -7,7 +7,7 @@
  
  
 [MITM]
-hostname = api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
+hostname = %APPEND% api.revenuecat.com, api.rc-backup.com, api.lianjiu.fun
  
 [URL Rewrite]
 ^https:\/\/api\.lianjiu\.fun\/app\/api\/v1\/profile _ reject
