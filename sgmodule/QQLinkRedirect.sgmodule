@@ -1,34 +1,39 @@
-#!name=QQ链接跳转优化
-#!desc=解除QQ中间页跳转，直接打开原始链接
+#!name=QQ 链接跳转优化
+#!desc=解除 QQ 中间页跳转，直接打开原始链接
 #!author=LinkPass888
 #!category=应用增强
-
+ 
+# ============================================
+# QQ 链接跳转优化 - 优化版
+# 功能：绕过 QQ 安全中间页，直接重定向到原始链接
+# 注意：HTTPS 307 重写需开启 MITM 并信任证书
+# ============================================
+ 
 [URL Rewrite]
-
-# c.pc.qq.com middlem
-^https:\/\/c\.pc\.qq\.com\/middlem\.html\?pfurl=(http.*)&pfuin=.* 307 $1
-
-# c.pc.qq.com middlect
-^https:\/\/c\.pc\.qq\.com\/middlect\.html\?pfuin=.*&pfurl=(http.*)&gjsublevel=.* 307 $1
-
-# c.pc.qq.com middlect iscontinue
-^https:\/\/c\.pc\.qq\.com\/middlect\.html\?iscontinue=.*pfurl=(http.*)&pfuin=.* 307 $1
-
-# pingtas middlem
-^https:\/\/pingtas\.qq\.com\/webview\/pingd\?dm=c\.pc\.qq\.com&pvi=\d+&si=s\d+&url=\/middlem\.html\?pfurl%3d(http.*)%26pfuin.* 307 $1
-
-# QQConnect get_urlinfo
-^https:\/\/cgi\.connect\.qq\.com\/qqconnectopen\/get_urlinfoForQQV2\?url=(http.*) 307 $1
-
-# c.pc.qq.com index
-^https:\/\/c\.pc\.qq\.com\/index\.html\?pfurl=(http.*)&pfuin=.* 307 $1
-
-# c.pc.qq.com ios
-^https:\/\/c\.pc\.qq\.com\/ios\.html\?url=(http.*)&level=.* 307 $1
-
-# pingtas ios
-^https:\/\/pingtas\.qq\.com\/webview\/pingd\?dm=c\.pc\.qq\.com&pvi=\d+&si=s\d+&url=\/ios\.html\?url%3d(http.*)%26level.* 307 $1
-
-
+ 
+# c.pc.qq.com - middlem (PC QQ 中间页)
+^https://c\.pc\.qq\.com/middlem\.html\?pfurl=(https?://[^&]+)&.* 307 $1
+ 
+# c.pc.qq.com - middlect (带 gjsublevel 参数)
+^https://c\.pc\.qq\.com/middlect\.html\?(?:.*?&)?pfurl=(https?://[^&]+)&.* 307 $1
+ 
+# c.pc.qq.com - middlect (iscontinue 模式)
+^https://c\.pc\.qq\.com/middlect\.html\?iscontinue=.*?pfurl=(https?://[^&]+)&.* 307 $1
+ 
+# c.pc.qq.com - index.html (通用入口)
+^https://c\.pc\.qq\.com/index\.html\?pfurl=(https?://[^&]+)&.* 307 $1
+ 
+# c.pc.qq.com - ios.html (iOS 专用)
+^https://c\.pc\.qq\.com/ios\.html\?url=(https?://[^&]+)&.* 307 $1
+ 
+# pingtas.qq.com - middlem (统计追踪入口)
+^https://pingtas\.qq\.com/webview/pingd\?.*?url=/middlem\.html%3Fpfurl%3D(https?://[^%&]+).* 307 $1
+ 
+# pingtas.qq.com - ios (统计追踪入口)
+^https://pingtas\.qq\.com/webview/pingd\?.*?url=/ios\.html%3Furl%3D(https?://[^%&]+).* 307 $1
+ 
+# connect.qq.com - get_urlinfoForQQV2 (API 接口)
+^https://cgi\.connect\.qq\.com/qqconnectopen/get_urlinfoForQQV2\?url=(https?://[^&]+) 307 $1
+ 
 [MITM]
-hostname = %APPEND% pingtas.qq.com,c.pc.qq.com,cgi.connect.qq.com
+hostname = %APPEND% c.pc.qq.com, pingtas.qq.com, cgi.connect.qq.com
