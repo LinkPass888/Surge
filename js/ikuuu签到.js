@@ -28,7 +28,20 @@ function debug(message) {
   if (DEBUG) console.log(`[IKUUU] ${message}`);
 }
 
+function decodePageBody(html) {
+  if (!html || typeof html !== "string") return html;
+  const match = html.match(/var\s+originBody\s*=\s*["']([^"']+)["']/i);
+  if (!match) return html;
+  try {
+    return atob(match[1]);
+  } catch (e) {
+    debug(`originBody 解码失败: ${String(e)}`);
+    return html;
+  }
+}
+
 function getRemainingTraffic(html, resp) {
+  html = decodePageBody(html);
   if (!html || typeof html !== "string") {
     debug(`用户中心响应为空或类型错误: ${typeof html}`);
     return "获取失败";
