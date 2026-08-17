@@ -34,9 +34,9 @@ function getRemainingTraffic(html, resp) {
     return "获取失败";
   }
   debug(`用户中心响应: status=${resp ? resp.status : "unknown"}, bytes=${html.length}`);
-  debug(`登录判定: ${/登录|login|auth\\/login/i.test(html) ? "疑似未登录" : "已进入用户页"}`);
+  debug(`登录判定: ${/登录|login|auth\/login/i.test(html) ? "疑似未登录" : "已进入用户页"}`);
   debug(`流量关键词数量: ${(html.match(/剩余流量/g) || []).length}`);
-  const match = html.match(/剩余流量[\\s\\S]{0,1500}?<span\\s+[^>]*class\\s*=\\s*["'][^"']*\\bcounter\\b[^"']*["'][^>]*>\\s*([0-9]+(?:\\.[0-9]+)?)\\s*<\\/span>\\s*([A-Za-z]+)?/i);
+  const match = html.match(/剩余流量[\s\S]{0,1500}?<span\s+[^>]*class\s*=\s*["'][^"']*\bcounter\b[^"']*["'][^>]*>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/span>\s*([A-Za-z]+)?/i);
   if (!match) debug(`流量正则未匹配，片段: ${html.slice(Math.max(0, html.indexOf("剩余流量") - 50), html.indexOf("剩余流量") + 500)}`);
   return match ? `${match[1]} ${match[2] || "GB"}` : "获取失败";
 }
