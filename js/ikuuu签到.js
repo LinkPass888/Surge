@@ -7,7 +7,6 @@ const CHECKIN_URL = `${BASE_URL}/user/checkin`;
 const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
 const EXPIRE_KEY = "IKU_EXPIRE";
-const DEBUG_KEY = "IKU_DEBUG_LOG";
 const DEBUG = true;
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1";
 
@@ -26,11 +25,7 @@ function parseCookie(header) {
 }
 
 function debug(message) {
-  if (!DEBUG) return;
-  const old = $persistentStore.read(DEBUG_KEY) || "";
-  const line = `[${new Date().toISOString()}] ${message}`;
-  $persistentStore.write((old + line + "\n").slice(-6000), DEBUG_KEY);
-  console.log(`[IKUUU] ${message}`);
+  if (DEBUG) console.log(`[IKUUU] ${message}`);
 }
 
 function getRemainingTraffic(html, resp) {
