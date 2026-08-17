@@ -42,6 +42,12 @@ function decodePageBody(html) {
 
 function getRemainingTraffic(html, resp) {
   html = decodePageBody(html);
+  // IKUUU 页面还会调用 trafficDountChat(已用, 今日用, 剩余, ...)，第三个参数就是剩余流量
+  const chart = html.match(/trafficDountChat\s*\(\s*["']([^"']+)["']\s*,\s*["'][^"']*["']\s*,\s*["']([^"']+)["']/i);
+  if (chart) {
+    debug(`通过 trafficDountChat 解析剩余流量: ${chart[2]}`);
+    return chart[2];
+  }
   if (!html || typeof html !== "string") {
     debug(`用户中心响应为空或类型错误: ${typeof html}`);
     return "获取失败";
