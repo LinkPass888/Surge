@@ -2,7 +2,7 @@
  * IKUUU 自动签到 + Cookie 自动更新 + 剩余流量通知
  */
 const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "_ga", "lang"];
-const BASE_URL = "https://ikuuu.win";
+const BASE_URL = "https://ikuuu.bar";
 const CHECKIN_URL = `${BASE_URL}/user/checkin`;
 const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
@@ -74,7 +74,7 @@ if (isRequest) {
 } else {
   const cookie = $persistentStore.read(COOKIE_STORAGE_KEY);
   if (!cookie) {
-    $notification.post("IKUUU 签到信息", "未找到 Cookie", "请访问一次 https://ikuuu.win/user 以自动抓取 Cookie");
+    $notification.post("IKUUU 签到信息", "未找到 Cookie", "请访问一次 https://ikuuu.bar/user 以自动抓取 Cookie");
     $done();
   }
 

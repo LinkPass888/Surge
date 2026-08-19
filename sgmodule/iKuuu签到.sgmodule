@@ -6,7 +6,7 @@
 ikuuu签到 = type=cron,cronexp=12 10 * * *,wake-system=1,timeout=30,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js,debug=0
 
 [MITM]
-hostname = %APPEND% ikuuu.win
+hostname = %APPEND% ikuuu.bar
 
 [Script]
 IKU-COOKIE = type=http-request,pattern=^https:\/\/ikuuu\.win\/user,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js
