@@ -1,8 +1,7 @@
 #!name=CycApp 隐藏播放前弹窗
 #!desc=将 CycApp 的 pre_play 弹窗配置改为空列表；不修改账号权限或广告奖励状态
-#!author=Minis
-#!homepage=https://github.com/LinkPass888/CycNoReward
-#!icon=https://mapi.babel.gold/favicon.ico
+#!author=LinkPass888 
+#!category=去广告
 
 [Script]
 CycApp-pre-play = type=http-response,pattern=^https:\/\/mapi\.babel\.gold\/app\/adverts\?position=pre_play(?:&.*)?$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/main/js/cycapp-preplay.js,timeout=10,argument=
