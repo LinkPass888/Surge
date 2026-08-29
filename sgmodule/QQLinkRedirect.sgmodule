@@ -3,31 +3,8 @@
 #!author=LinkPass888
 #!category=应用增强
 
-[URL Rewrite]
-
-# c.pc.qq.com - middlem (PC QQ 中间页)
-^https://c\.pc\.qq\.com/middlem\.html\?pfurl=(https?://[^&]+)&.*$ $1 302
-
-# c.pc.qq.com - middlect (带 gjsublevel 参数)
-^https://c\.pc\.qq\.com/middlect\.html\?(?:.*?&)?pfurl=(https?://[^&]+)&.*$ $1 302
-
-# c.pc.qq.com - middlect (iscontinue 模式)
-^https://c\.pc\.qq\.com/middlect\.html\?iscontinue=.*?pfurl=(https?://[^&]+)&.*$ $1 302
-
-# c.pc.qq.com - index.html (通用入口)
-^https://c\.pc\.qq\.com/index\.html\?pfurl=(https?://[^&]+)&.*$ $1 302
-
-# c.pc.qq.com - ios.html (iOS 专用)
-^https://c\.pc\.qq\.com/ios\.html\?url=(https?://[^&]+)&.*$ $1 302
-
-# pingtas.qq.com - middlem (统计追踪入口)
-^https://pingtas\.qq\.com/webview/pingd\?.*?url=/middlem\.html%3Fpfurl%3D(https?://[^%&]+).*$ $1 302
-
-# pingtas.qq.com - ios (统计追踪入口)
-^https://pingtas\.qq\.com/webview/pingd\?.*?url=/ios\.html%3Furl%3D(https?://[^%&]+).*$ $1 302
-
-# connect.qq.com - get_urlinfoForQQV2 (API 接口)
-^https://cgi\.connect\.qq\.com/qqconnectopen/get_urlinfoForQQV2\?url=(https?://[^&]+)$ $1 302
+[Script]
+QQ链接直开 = type=http-request,pattern=^https?:\/\/c\.pc\.qq\.com\/(?:https?%3A%2F%2F|middlem\.html\?|middlect\.html\?|index\.html\?|ios\.html\?),script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/qq-link-redirect.js,timeout=5
 
 [MITM]
-hostname = %APPEND% c.pc.qq.com, pingtas.qq.com, cgi.connect.qq.com
+hostname = %APPEND% c.pc.qq.com
