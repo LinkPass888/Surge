@@ -1,12 +1,13 @@
 /**
  * IKUUU 自动签到 + Cookie 自动更新 + 剩余流量通知
  */
-const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "_ga", "lang"];
+const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "session_version", "_ga", "lang"];
 const BASE_URL = "https://ikuuu.bar";
 const CHECKIN_URL = `${BASE_URL}/user/checkin`;
 const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
 const EXPIRE_KEY = "IKU_EXPIRE";
+const DEBUG = true;
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1";
 
 const isRequest = typeof $request !== "undefined";
@@ -23,23 +24,39 @@ function parseCookie(header) {
   return result;
 }
 
+function debug(message) {
+  if (DEBUG) console.log(`[IKUUU] ${message}`);
+}
+
 function decodePageBody(html) {
   if (!html || typeof html !== "string") return html;
   const match = html.match(/var\s+originBody\s*=\s*["']([^"']+)["']/i);
   if (!match) return html;
   try {
     return atob(match[1]);
-  } catch (_) {
+  } catch (e) {
+    debug(`originBody 解码失败: ${String(e)}`);
     return html;
   }
 }
 
-function getRemainingTraffic(html) {
+function getRemainingTraffic(html, resp) {
   html = decodePageBody(html);
-  const chart = html.match(/trafficDountChat\s*\(\s*["'][^"']*["']\s*,\s*["'][^"']*["']\s*,\s*["']([^"']+)["']/i);
-  if (chart) return chart[1];
-  if (!html || typeof html !== "string") return "获取失败";
+  // IKUUU 页面还会调用 trafficDountChat(已用, 今日用, 剩余, ...)，第三个参数就是剩余流量
+  const chart = html.match(/trafficDountChat\s*\(\s*["']([^"']+)["']\s*,\s*["'][^"']*["']\s*,\s*["']([^"']+)["']/i);
+  if (chart) {
+    debug(`通过 trafficDountChat 解析剩余流量: ${chart[2]}`);
+    return chart[2];
+  }
+  if (!html || typeof html !== "string") {
+    debug(`用户中心响应为空或类型错误: ${typeof html}`);
+    return "获取失败";
+  }
+  debug(`用户中心响应: status=${resp ? resp.status : "unknown"}, bytes=${html.length}`);
+  debug(`登录判定: ${/登录|login|auth\/login/i.test(html) ? "疑似未登录" : "已进入用户页"}`);
+  debug(`流量关键词数量: ${(html.match(/剩余流量/g) || []).length}`);
   const match = html.match(/剩余流量[\s\S]{0,1500}?<span\s+[^>]*class\s*=\s*["'][^"']*\bcounter\b[^"']*["'][^>]*>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/span>\s*([A-Za-z]+)?/i);
+  if (!match) debug(`流量正则未匹配，片段: ${html.slice(Math.max(0, html.indexOf("剩余流量") - 50), html.indexOf("剩余流量") + 500)}`);
   return match ? `${match[1]} ${match[2] || "GB"}` : "获取失败";
 }
 
@@ -57,7 +74,7 @@ function commonHeaders(cookie) {
     "Origin": BASE_URL,
     "User-Agent": UA,
     "X-Requested-With": "XMLHttpRequest",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    "Accept": "application/json, text/javascript, */*; q=0.01"
   };
 }
 
@@ -88,13 +105,20 @@ if (isRequest) {
   }
 
   function fetchTraffic(checkinMsg) {
+    debug(`开始请求用户中心: ${USER_URL}`);
+    debug(`Cookie 字段: ${cookie.split(";").map(x => x.split("=")[0]).join(",")}`);
     $httpClient.get({ url: USER_URL, headers }, (err, resp, html) => {
-      const traffic = err ? "获取失败（网络错误）" : getRemainingTraffic(html);
-      notify(checkinMsg, `剩余流量：${traffic}`);
+      if (err) debug(`用户中心请求错误: ${String(err)}`);
+      if (resp) debug(`用户中心响应状态: ${resp.status}, headers=${JSON.stringify(resp.headers || {})}`);
+      const traffic = err ? "获取失败（网络错误）" : getRemainingTraffic(html, resp);
+      const trafficMsg = `剩余流量：${traffic}`;
+      debug(`最终流量结果: ${trafficMsg}`);
+      notify(checkinMsg, trafficMsg);
     });
   }
 
   $httpClient.post({ url: CHECKIN_URL, headers, body: "" }, (err, resp, data) => {
+    debug(`签到请求: error=${err ? String(err) : "none"}, status=${resp ? resp.status : "unknown"}, response=${String(data || "").slice(0, 500)}`);
     let checkinMsg;
     if (err) {
       checkinMsg = "签到失败：网络错误";
@@ -106,7 +130,7 @@ if (isRequest) {
         checkinMsg = "签到失败：返回解析错误";
       }
     }
-    // 签到请求结束后始终请求用户中心，避免遗漏“已签到”场景
+    // 签到请求结束后始终请求用户中心，避免遗漏"已签到"场景
     fetchTraffic(checkinMsg);
   });
 }

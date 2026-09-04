@@ -3,10 +3,10 @@
 #!category=定时任务
 
 [Script]
-ikuuu签到 = type=cron,cronexp=12 10 * * *,wake-system=1,timeout=30,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js,debug=0
+ikuuu签到 = type=cron,cronexp=12 10 * * *,wake-system=1,timeout=60,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js,debug=1
 
 [MITM]
 hostname = %APPEND% ikuuu.bar
 
 [Script]
-IKU-COOKIE = type=http-request,pattern=^https:\/\/ikuuu\.bar\/user,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js
+IKU-COOKIE = type=http-request,pattern=^https:\/\/ikuuu\.bar\/user\/?(\?.*)?$,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js,timeout=60
