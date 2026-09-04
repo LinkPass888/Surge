@@ -1,9 +1,10 @@
 /**
  * IKUUU 自动签到 + Cookie 自动更新 + 剩余流量通知
  * 
- * 配置项（可在 Surge 模块参数或脚本顶部修改）：
- *   POLICY_NAME: 代理策略名或策略组名，默认 "香港节点"
+ * 策略配置：修改下面 POLICY_NAME 的值
+ * 可填策略名（如"香港节点"）或策略组名（如"国际媒体"）
  */
+const POLICY_NAME = "香港节点";
 const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "session_version", "_ga", "lang"];
 const BASE_URL = "https://ikuuu.bar";
 const CHECKIN_URL = `${BASE_URL}/user/checkin`;
@@ -11,9 +12,6 @@ const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
 const EXPIRE_KEY = "IKU_EXPIRE";
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1";
-
-// 策略配置：可通过 Surge 模块参数覆盖，或在这里直接修改
-const POLICY_NAME = (typeof $argument !== "undefined" && $argument.policy) ? $argument.policy : "香港节点";
 
 const isRequest = typeof $request !== "undefined";
 
