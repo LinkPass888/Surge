@@ -1,5 +1,8 @@
 /**
  * IKUUU 自动签到 + Cookie 自动更新 + 剩余流量通知
+ * 
+ * 配置项（可在 Surge 模块参数或脚本顶部修改）：
+ *   POLICY_NAME: 代理策略名或策略组名，默认 "香港节点"
  */
 const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "session_version", "_ga", "lang"];
 const BASE_URL = "https://ikuuu.bar";
@@ -8,6 +11,9 @@ const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
 const EXPIRE_KEY = "IKU_EXPIRE";
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1";
+
+// 策略配置：可通过 Surge 模块参数覆盖，或在这里直接修改
+const POLICY_NAME = (typeof $argument !== "undefined" && $argument.policy) ? $argument.policy : "香港节点";
 
 const isRequest = typeof $request !== "undefined";
 
@@ -61,48 +67,6 @@ function commonHeaders(cookie) {
   };
 }
 
-// 动态获取 ikuuu.bar 的代理策略名
-function getPolicyForIkuuu(callback) {
-  // 方法1: 从最近请求中查找
-  $httpAPI("GET", "/v1/requests/recent", null, function(result) {
-    if (result && result.requests) {
-      for (let i = 0; i < result.requests.length; i++) {
-        const req = result.requests[i];
-        if (req.URL && req.URL.indexOf("ikuuu.bar") >= 0 && req.policyName) {
-          callback(req.policyName);
-          return;
-        }
-      }
-    }
-    // 方法2: 从 select group decisions 中查找包含国外/代理关键词的策略组
-    try {
-      const details = $surge.selectGroupDetails();
-      if (details && details.decisions) {
-        const keywords = ["国外", "国际", "代理", "Proxy", "proxy", "GLOBAL"];
-        const groups = Object.keys(details.decisions);
-        for (let i = 0; i < groups.length; i++) {
-          const groupName = groups[i];
-          for (let j = 0; j < keywords.length; j++) {
-            if (groupName.indexOf(keywords[j]) >= 0) {
-              callback(details.decisions[groupName]);
-              return;
-            }
-          }
-        }
-        // 方法3: 使用第一个非 DIRECT 的策略组
-        for (let i = 0; i < groups.length; i++) {
-          const policy = details.decisions[groups[i]];
-          if (policy && policy !== "DIRECT" && policy !== "REJECT") {
-            callback(policy);
-            return;
-          }
-        }
-      }
-    } catch (_) {}
-    callback(null);
-  });
-}
-
 if (isRequest) {
   const cookieHeader = $request.headers["Cookie"] || $request.headers["cookie"] || "";
   const cookieObj = parseCookie(cookieHeader);
@@ -128,10 +92,8 @@ if (isRequest) {
     $done();
   }
 
-  function doCheckin(policyName) {
-    const opts = { url: CHECKIN_URL, headers, body: "", timeout: 30 };
-    if (policyName) opts.policy = policyName;
-
+  function doCheckin() {
+    const opts = { url: CHECKIN_URL, headers, body: "", timeout: 30, policy: POLICY_NAME };
     $httpClient.post(opts, (err, resp, data) => {
       let checkinMsg;
       if (err) {
@@ -149,21 +111,17 @@ if (isRequest) {
           }
         }
       }
-      fetchTraffic(checkinMsg, policyName);
+      fetchTraffic(checkinMsg);
     });
   }
 
-  function fetchTraffic(checkinMsg, policyName) {
-    const opts = { url: USER_URL, headers, timeout: 30 };
-    if (policyName) opts.policy = policyName;
-
+  function fetchTraffic(checkinMsg) {
+    const opts = { url: USER_URL, headers, timeout: 30, policy: POLICY_NAME };
     $httpClient.get(opts, (err, resp, html) => {
       const traffic = err ? "获取失败（网络错误）" : getRemainingTraffic(html);
       notify(checkinMsg, `剩余流量：${traffic}`);
     });
   }
 
-  getPolicyForIkuuu(function(policyName) {
-    doCheckin(policyName);
-  });
+  doCheckin();
 }

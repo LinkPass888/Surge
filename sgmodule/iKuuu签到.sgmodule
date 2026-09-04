@@ -1,9 +1,12 @@
 #!name=iKuuu签到
-#!desc=iKuuu机场签到及cookie获取
+#!desc=iKuuu机场签到及cookie获取 (策略可配置)
 #!category=定时任务
 
+# 可配置参数：policy=你的策略名或策略组名
+# 例如：policy=香港节点 或 policy=国际媒体
+
 [Script]
-ikuuu签到 = type=cron,cronexp=12 10 * * *,wake-system=1,timeout=60,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js,debug=0
+ikuuu签到 = type=cron,cronexp=12 10 * * *,wake-system=1,timeout=60,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/refs/heads/main/js/ikuuu签到.js,debug=0,argument="{\"policy\":\"香港节点\"}"
 
 [MITM]
 hostname = %APPEND% ikuuu.bar
