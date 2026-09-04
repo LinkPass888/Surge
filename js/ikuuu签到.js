@@ -7,7 +7,6 @@ const CHECKIN_URL = `${BASE_URL}/user/checkin`;
 const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
 const EXPIRE_KEY = "IKU_EXPIRE";
-const DEBUG = true;
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1";
 
 const isRequest = typeof $request !== "undefined";
@@ -24,39 +23,23 @@ function parseCookie(header) {
   return result;
 }
 
-function debug(message) {
-  if (DEBUG) console.log(`[IKUUU] ${message}`);
-}
-
 function decodePageBody(html) {
   if (!html || typeof html !== "string") return html;
   const match = html.match(/var\s+originBody\s*=\s*["']([^"']+)["']/i);
   if (!match) return html;
   try {
     return atob(match[1]);
-  } catch (e) {
-    debug(`originBody 解码失败: ${String(e)}`);
+  } catch (_) {
     return html;
   }
 }
 
-function getRemainingTraffic(html, resp) {
+function getRemainingTraffic(html) {
   html = decodePageBody(html);
-  // IKUUU 页面还会调用 trafficDountChat(已用, 今日用, 剩余, ...)，第三个参数就是剩余流量
   const chart = html.match(/trafficDountChat\s*\(\s*["']([^"']+)["']\s*,\s*["'][^"']*["']\s*,\s*["']([^"']+)["']/i);
-  if (chart) {
-    debug(`通过 trafficDountChat 解析剩余流量: ${chart[2]}`);
-    return chart[2];
-  }
-  if (!html || typeof html !== "string") {
-    debug(`用户中心响应为空或类型错误: ${typeof html}`);
-    return "获取失败";
-  }
-  debug(`用户中心响应: status=${resp ? resp.status : "unknown"}, bytes=${html.length}`);
-  debug(`登录判定: ${/登录|login|auth\/login/i.test(html) ? "疑似未登录" : "已进入用户页"}`);
-  debug(`流量关键词数量: ${(html.match(/剩余流量/g) || []).length}`);
+  if (chart) return chart[2];
+  if (!html || typeof html !== "string") return "获取失败";
   const match = html.match(/剩余流量[\s\S]{0,1500}?<span\s+[^>]*class\s*=\s*["'][^"']*\bcounter\b[^"']*["'][^>]*>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/span>\s*([A-Za-z]+)?/i);
-  if (!match) debug(`流量正则未匹配，片段: ${html.slice(Math.max(0, html.indexOf("剩余流量") - 50), html.indexOf("剩余流量") + 500)}`);
   return match ? `${match[1]} ${match[2] || "GB"}` : "获取失败";
 }
 
@@ -86,7 +69,6 @@ function getPolicyForIkuuu(callback) {
       for (let i = 0; i < result.requests.length; i++) {
         const req = result.requests[i];
         if (req.URL && req.URL.indexOf("ikuuu.bar") >= 0 && req.policyName) {
-          debug(`从最近请求找到策略: ${req.policyName}`);
           callback(req.policyName);
           return;
         }
@@ -102,9 +84,7 @@ function getPolicyForIkuuu(callback) {
           const groupName = groups[i];
           for (let j = 0; j < keywords.length; j++) {
             if (groupName.indexOf(keywords[j]) >= 0) {
-              const policy = details.decisions[groupName];
-              debug(`从策略组 "${groupName}" 找到策略: ${policy}`);
-              callback(policy);
+              callback(details.decisions[groupName]);
               return;
             }
           }
@@ -113,16 +93,12 @@ function getPolicyForIkuuu(callback) {
         for (let i = 0; i < groups.length; i++) {
           const policy = details.decisions[groups[i]];
           if (policy && policy !== "DIRECT" && policy !== "REJECT") {
-            debug(`使用第一个代理策略组 "${groups[i]}": ${policy}`);
             callback(policy);
             return;
           }
         }
       }
-    } catch (e) {
-      debug(`selectGroupDetails 失败: ${String(e)}`);
-    }
-    debug("未找到可用代理策略，使用 DIRECT");
+    } catch (_) {}
     callback(null);
   });
 }
@@ -155,18 +131,14 @@ if (isRequest) {
   function doCheckin(policyName) {
     const opts = { url: CHECKIN_URL, headers, body: "", timeout: 30 };
     if (policyName) opts.policy = policyName;
-    debug(`签到请求 opts: policy=${policyName || "DIRECT"}, url=${CHECKIN_URL}`);
 
     $httpClient.post(opts, (err, resp, data) => {
-      debug(`签到请求: error=${err ? String(err) : "none"}, status=${resp ? resp.status : "unknown"}, response=${String(data || "").slice(0, 500)}`);
       let checkinMsg;
       if (err) {
         checkinMsg = "签到失败：网络错误";
       } else {
-        // 检查是否返回了 HTML（说明 Cookie 失效或被重定向到登录页）
         const dataStr = String(data || "");
         if (dataStr.indexOf("<!DOCTYPE") >= 0 || dataStr.indexOf("<html") >= 0) {
-          debug("签到返回 HTML 而非 JSON，Cookie 可能已失效");
           checkinMsg = "⚠️ Cookie 已失效，请重新访问 /user 页面";
         } else {
           try {
@@ -184,22 +156,14 @@ if (isRequest) {
   function fetchTraffic(checkinMsg, policyName) {
     const opts = { url: USER_URL, headers, timeout: 30 };
     if (policyName) opts.policy = policyName;
-    debug(`开始请求用户中心: ${USER_URL}, policy=${policyName || "DIRECT"}`);
-    debug(`Cookie 字段: ${cookie.split(";").map(x => x.split("=")[0]).join(",")}`);
 
     $httpClient.get(opts, (err, resp, html) => {
-      if (err) debug(`用户中心请求错误: ${String(err)}`);
-      if (resp) debug(`用户中心响应状态: ${resp.status}, headers=${JSON.stringify(resp.headers || {})}`);
-      const traffic = err ? "获取失败（网络错误）" : getRemainingTraffic(html, resp);
-      const trafficMsg = `剩余流量：${traffic}`;
-      debug(`最终流量结果: ${trafficMsg}`);
-      notify(checkinMsg, trafficMsg);
+      const traffic = err ? "获取失败（网络错误）" : getRemainingTraffic(html);
+      notify(checkinMsg, `剩余流量：${traffic}`);
     });
   }
 
-  // 先获取代理策略，再执行签到
   getPolicyForIkuuu(function(policyName) {
-    debug(`使用策略: ${policyName || "DIRECT"}`);
     doCheckin(policyName);
   });
 }
