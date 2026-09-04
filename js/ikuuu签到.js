@@ -78,20 +78,51 @@ function commonHeaders(cookie) {
   };
 }
 
-// 动态获取 ikuuu.bar 的代理策略名（从最近请求中查找）
+// 动态获取 ikuuu.bar 的代理策略名
 function getPolicyForIkuuu(callback) {
+  // 方法1: 从最近请求中查找
   $httpAPI("GET", "/v1/requests/recent", null, function(result) {
     if (result && result.requests) {
       for (let i = 0; i < result.requests.length; i++) {
         const req = result.requests[i];
         if (req.URL && req.URL.indexOf("ikuuu.bar") >= 0 && req.policyName) {
-          debug(`找到 ikuuu.bar 策略: ${req.policyName}`);
+          debug(`从最近请求找到策略: ${req.policyName}`);
           callback(req.policyName);
           return;
         }
       }
     }
-    debug("未找到 ikuuu.bar 策略，使用 DIRECT");
+    // 方法2: 从 select group decisions 中查找包含国外/代理关键词的策略组
+    try {
+      const details = $surge.selectGroupDetails();
+      if (details && details.decisions) {
+        const keywords = ["国外", "国际", "代理", "Proxy", "proxy", "GLOBAL"];
+        const groups = Object.keys(details.decisions);
+        for (let i = 0; i < groups.length; i++) {
+          const groupName = groups[i];
+          for (let j = 0; j < keywords.length; j++) {
+            if (groupName.indexOf(keywords[j]) >= 0) {
+              const policy = details.decisions[groupName];
+              debug(`从策略组 "${groupName}" 找到策略: ${policy}`);
+              callback(policy);
+              return;
+            }
+          }
+        }
+        // 方法3: 使用第一个非 DIRECT 的策略组
+        for (let i = 0; i < groups.length; i++) {
+          const policy = details.decisions[groups[i]];
+          if (policy && policy !== "DIRECT" && policy !== "REJECT") {
+            debug(`使用第一个代理策略组 "${groups[i]}": ${policy}`);
+            callback(policy);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debug(`selectGroupDetails 失败: ${String(e)}`);
+    }
+    debug("未找到可用代理策略，使用 DIRECT");
     callback(null);
   });
 }
@@ -117,7 +148,6 @@ if (isRequest) {
   const cookieMsg = getCookieMessage();
 
   function notify(checkinMsg, trafficMsg) {
-    // 无论签到成功、已签到、失败，都统一包含当前剩余流量
     $notification.post("IKUUU 签到信息", checkinMsg, `${trafficMsg}\n${cookieMsg}`);
     $done();
   }
@@ -133,11 +163,18 @@ if (isRequest) {
       if (err) {
         checkinMsg = "签到失败：网络错误";
       } else {
-        try {
-          const obj = JSON.parse(data);
-          checkinMsg = obj.msg || JSON.stringify(obj);
-        } catch (_) {
-          checkinMsg = "签到失败：返回解析错误";
+        // 检查是否返回了 HTML（说明 Cookie 失效或被重定向到登录页）
+        const dataStr = String(data || "");
+        if (dataStr.indexOf("<!DOCTYPE") >= 0 || dataStr.indexOf("<html") >= 0) {
+          debug("签到返回 HTML 而非 JSON，Cookie 可能已失效");
+          checkinMsg = "⚠️ Cookie 已失效，请重新访问 /user 页面";
+        } else {
+          try {
+            const obj = JSON.parse(dataStr);
+            checkinMsg = obj.msg || JSON.stringify(obj);
+          } catch (_) {
+            checkinMsg = "签到失败：返回解析错误";
+          }
         }
       }
       fetchTraffic(checkinMsg, policyName);
