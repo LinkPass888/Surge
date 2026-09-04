@@ -78,6 +78,24 @@ function commonHeaders(cookie) {
   };
 }
 
+// 动态获取 ikuuu.bar 的代理策略名（从最近请求中查找）
+function getPolicyForIkuuu(callback) {
+  $httpAPI("GET", "/v1/requests/recent", null, function(result) {
+    if (result && result.requests) {
+      for (let i = 0; i < result.requests.length; i++) {
+        const req = result.requests[i];
+        if (req.URL && req.URL.indexOf("ikuuu.bar") >= 0 && req.policyName) {
+          debug(`找到 ikuuu.bar 策略: ${req.policyName}`);
+          callback(req.policyName);
+          return;
+        }
+      }
+    }
+    debug("未找到 ikuuu.bar 策略，使用 DIRECT");
+    callback(null);
+  });
+}
+
 if (isRequest) {
   const cookieHeader = $request.headers["Cookie"] || $request.headers["cookie"] || "";
   const cookieObj = parseCookie(cookieHeader);
@@ -104,10 +122,35 @@ if (isRequest) {
     $done();
   }
 
-  function fetchTraffic(checkinMsg) {
-    debug(`开始请求用户中心: ${USER_URL}`);
+  function doCheckin(policyName) {
+    const opts = { url: CHECKIN_URL, headers, body: "", timeout: 30 };
+    if (policyName) opts.policy = policyName;
+    debug(`签到请求 opts: policy=${policyName || "DIRECT"}, url=${CHECKIN_URL}`);
+
+    $httpClient.post(opts, (err, resp, data) => {
+      debug(`签到请求: error=${err ? String(err) : "none"}, status=${resp ? resp.status : "unknown"}, response=${String(data || "").slice(0, 500)}`);
+      let checkinMsg;
+      if (err) {
+        checkinMsg = "签到失败：网络错误";
+      } else {
+        try {
+          const obj = JSON.parse(data);
+          checkinMsg = obj.msg || JSON.stringify(obj);
+        } catch (_) {
+          checkinMsg = "签到失败：返回解析错误";
+        }
+      }
+      fetchTraffic(checkinMsg, policyName);
+    });
+  }
+
+  function fetchTraffic(checkinMsg, policyName) {
+    const opts = { url: USER_URL, headers, timeout: 30 };
+    if (policyName) opts.policy = policyName;
+    debug(`开始请求用户中心: ${USER_URL}, policy=${policyName || "DIRECT"}`);
     debug(`Cookie 字段: ${cookie.split(";").map(x => x.split("=")[0]).join(",")}`);
-    $httpClient.get({ url: USER_URL, headers }, (err, resp, html) => {
+
+    $httpClient.get(opts, (err, resp, html) => {
       if (err) debug(`用户中心请求错误: ${String(err)}`);
       if (resp) debug(`用户中心响应状态: ${resp.status}, headers=${JSON.stringify(resp.headers || {})}`);
       const traffic = err ? "获取失败（网络错误）" : getRemainingTraffic(html, resp);
@@ -117,20 +160,9 @@ if (isRequest) {
     });
   }
 
-  $httpClient.post({ url: CHECKIN_URL, headers, body: "" }, (err, resp, data) => {
-    debug(`签到请求: error=${err ? String(err) : "none"}, status=${resp ? resp.status : "unknown"}, response=${String(data || "").slice(0, 500)}`);
-    let checkinMsg;
-    if (err) {
-      checkinMsg = "签到失败：网络错误";
-    } else {
-      try {
-        const obj = JSON.parse(data);
-        checkinMsg = obj.msg || JSON.stringify(obj);
-      } catch (_) {
-        checkinMsg = "签到失败：返回解析错误";
-      }
-    }
-    // 签到请求结束后始终请求用户中心，避免遗漏"已签到"场景
-    fetchTraffic(checkinMsg);
+  // 先获取代理策略，再执行签到
+  getPolicyForIkuuu(function(policyName) {
+    debug(`使用策略: ${policyName || "DIRECT"}`);
+    doCheckin(policyName);
   });
 }
