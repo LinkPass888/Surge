@@ -1,10 +1,8 @@
 /**
  * IKUUU 自动签到 + Cookie 自动更新 + 剩余流量通知
  * 
- * 策略配置：修改下面 POLICY_NAME 的值
- * 可填策略名（如"香港节点"）或策略组名（如"国际媒体"）
+ * 策略通过模块参数配置，在模块设置中编辑 policy 值
  */
-const POLICY_NAME = "香港节点";
 const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "session_version", "_ga", "lang"];
 const BASE_URL = "https://ikuuu.bar";
 const CHECKIN_URL = `${BASE_URL}/user/checkin`;
@@ -12,6 +10,9 @@ const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
 const EXPIRE_KEY = "IKU_EXPIRE";
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1";
+
+// 从模块参数读取策略名，默认"香港节点"
+const POLICY_NAME = (typeof $argument !== "undefined" && $argument) ? $argument : "香港节点";
 
 const isRequest = typeof $request !== "undefined";
 
