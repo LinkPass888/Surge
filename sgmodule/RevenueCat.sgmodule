@@ -3,7 +3,7 @@
 #!system = ios
 #!author=LinkPass888
 #!category=Crack
-#!arguments = RevenueCat-chxm1023:"false",RevenueCat-Guding88:"false",RevenueCat-ddgksf2013:"false",RevenueCat-Yu9191:"false"
+#!arguments = RevenueCat-chxm1023:"false",RevenueCat-Guding88:"false",RevenueCat-ddgksf2013:"false"
  
  
 [MITM]
@@ -19,5 +19,3 @@ http-request ^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\
 http-response ^https?:\/\/api\.(revenuecat|rc-backup)\.com\/v1\/(subscribers\/[^\/]+$|receipts$) script-path=https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Revenuecat.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@Guding88, enable=%{RevenueCat_Guding88}
 http-request ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path=https://raw.githubusercontent.com/ddgksf2013/Scripts/master/deleteHeader.js, requires-body=false, tag=[RevenueCat] 会员解锁请求@ddgksf2013, enable=%{RevenueCat_ddgksf2013}
 http-response ^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/?(.*?)*$) script-path=https://ddgksf2013.top/scripts/revenuecat.vip.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@ddgksf2013, enable=%{RevenueCat_ddgksf2013}
-http-request ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$) script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=false, tag=[RevenueCat] 会员解锁请求@Yu9191, enable=%{RevenueCat_Yu9191}
-http-response ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com)\/.+\/(receipts$|subscribers\/[^/]+$) script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/Revenuecat.js, requires-body=true, tag=[RevenueCat] 会员解锁响应@Yu9191, enable=%{RevenueCat_Yu9191}
