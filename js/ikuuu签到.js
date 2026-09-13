@@ -4,7 +4,7 @@
  * 策略通过模块参数配置，在模块设置中编辑 policy 值
  */
 const COOKIE_KEYS = ["email", "expire_in", "ip", "key", "uid", "session_version", "_ga", "lang"];
-const BASE_URL = "https://ikuuu.bar";
+const BASE_URL = "https://ikuuu.pw";
 const CHECKIN_URL = `${BASE_URL}/user/checkin`;
 const USER_URL = `${BASE_URL}/user`;
 const COOKIE_STORAGE_KEY = "IKU_COOKIE";
@@ -79,7 +79,7 @@ if (isRequest) {
 } else {
   const cookie = $persistentStore.read(COOKIE_STORAGE_KEY);
   if (!cookie) {
-    $notification.post("IKUUU 签到信息", "未找到 Cookie", "请访问一次 https://ikuuu.bar/user 以自动抓取 Cookie");
+    $notification.post("IKUUU 签到信息", "未找到 Cookie", "请访问一次 https://ikuuu.pw/user 以自动抓取 Cookie");
     $done();
   }
 
