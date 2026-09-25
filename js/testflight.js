@@ -26,7 +26,7 @@ const $ = new Env('TestFilght监控');
  * 例如"VCIvwk2g,wArXdacJ,2vnRvOTX,LzjySbQx,IdFRwmNy,qDkBu2ur,4Qt2lIm5,ZzqOu8tX,ftCqFe6D,fy7LvHVA,QKqitFwc"
 */
 //const appkey = "VCIvwk2g,1SyedSId";
-const appkey = $.getdata('appkey');
+const appkey = $argument;
 
 //是否在没有tf位置的时候仍然弹出通知，默认不弹出,防止过多无用通知。
 var isNOtify = $.getdata('testflight_isnotify');
