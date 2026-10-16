@@ -5,7 +5,8 @@
 
 
 [URL Rewrite]
-^https?://www\.coolapk\.com/link\?(?:.*?&)?url=([^&#]+).*$ $1 302
+# 仅重定向外部链接；酷安内部动态/帖子链接（coolapk.com 及其子域）放行
+^https?://www\.coolapk\.com/link\?(?:.*?&)?url=((?!https?://(?:[^/]*\.)?coolapk\.com)[^&#]+).*$ $1 302
 
 [MITM]
 hostname = %APPEND% www.coolapk.com
