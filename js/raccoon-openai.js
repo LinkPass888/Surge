@@ -1,23 +1,21 @@
 /*
- * Raccoon OpenAI Proxy for Surge
- * 把商汤小浣熊包装成 OpenAI 兼容 API
- * 主链路：/api/web/llm/v2（官方 LLM 网关，标准 OpenAI 格式，参考 Agent2API 实现）
- * 回退链路：/api/web/office/v3/chat-completions（网页版老接口，自定义 SSE）
+ * Raccoon OpenAI Proxy for Surge (v3 · 真流式透传版)
+ * 架构：http-request 脚本只改写请求（URL / Authorization / 模型名），
+ * 上游 llm/v2 的标准 OpenAI SSE 流原生透传给客户端 —— 真流式，无聚合延迟。
+ * /v1/models、/v1/checkin、/v1/probe 为本地应答（不需要流式）。
+ * 参考 Agent2API（aimod-cc/Agent2API）racoon 适配器。
  * by LinkPass888
  *
  * $argument: nation=86&phone=...&password=...&token=...
- * 填了 token 则跳过登录；否则用 phone+password 自动登录并缓存。
  */
 const A = parseArg(typeof $argument === "string" ? $argument : "");
 const AUTH = "https://xiaohuanxiong.com/api/web/auth/v1";
-const LLM = "https://xiaohuanxiong.com/api/web/llm/v2";           // 新：官方 LLM 网关
-const LEGACY = "https://xiaohuanxiong.com/api/web/office/v3/chat-completions"; // 老：网页版
+const LLM = "https://xiaohuanxiong.com/api/web/llm/v2";
 const ENC_KEY = "senseraccoon2023";
 const TS_KEY = "raccoon_openai_tokens";
 const CAT_KEY = "raccoon_openai_catalog";
-const CAT_TTL = 10 * 60 * 1000; // Agent2API 同款：10 分钟
+const CAT_TTL = 10 * 60 * 1000;
 
-// 静态兜底模型（来自 Agent2API FALLBACK_MODELS + 实测）
 const FALLBACK_MODELS = [
   { id: "raccoon-8c4485", name: "Raccoon-Work" },
   { id: "raccoon-chat-ml-5-5", name: "Raccoon Chat (默认)" },
@@ -178,7 +176,7 @@ function saveTokens(access, refresh) {
   $persistentStore.write(JSON.stringify({ access: access, refresh: refresh, at: Date.now() }), TS_KEY);
 }
 
-/* ---------------- 登录 / 刷新 ---------------- */
+/* ---------------- 登录 / 刷新 / 过期预检 ---------------- */
 function login(cb) {
   if (!A.phone || !A.password) {
     cb(new Error("模块未配置 phone/password（或直接填 token）"), null);
@@ -211,6 +209,7 @@ function refreshToken(cb) {
       url: AUTH + "/refresh",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: t.refresh }),
+      timeout: 20,
     },
     function (err, resp, data) {
       if (err) return login(cb);
@@ -222,24 +221,38 @@ function refreshToken(cb) {
     }
   );
 }
+// 解 JWT exp（不验签，仅读过期时间）；解析失败返回 0
+function jwtExp(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return 0;
+    const b = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b + "===".slice((b.length + 3) % 4);
+    const json = decodeURIComponent(atob(pad).split("").map(function (c) {
+      return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(""));
+    return Number(JSON.parse(json).exp || 0) * 1000;
+  } catch (e) { return 0; }
+}
+// 确保有未过期的 token：直填 token 原样用；缓存 token 距过期 <2 分钟则先 refresh
 function ensureToken(cb) {
   if (A.token) return cb(null, A.token.replace(/^Bearer\s+/i, ""));
   const t = loadTokens();
-  if (t && t.access) return cb(null, t.access);
-  login(cb);
+  if (!t || !t.access) return login(cb);
+  const exp = jwtExp(t.access);
+  if (exp && exp < Date.now() + 120000) return refreshToken(cb);
+  cb(null, t.access);
 }
 
-/* ---------------- 模型目录（llm/v2/model_catalog，参考 Agent2API models.rs） ---------------- */
+/* ---------------- 模型目录（llm/v2/model_catalog） ---------------- */
 function loadCatalog() {
   try { return JSON.parse($persistentStore.read(CAT_KEY) || "null"); } catch (e) { return null; }
 }
-// 解析目录：{data:{categories:[{models:[{name,displayName,...}]}]}}，name 是模型 id
 function parseCatalog(payload) {
   const data = payload && payload.data && typeof payload.data === "object" ? payload.data : payload;
   const out = [];
   const seen = {};
-  const cats = (data && data.categories) || [];
-  for (const cat of cats) {
+  for (const cat of (data && data.categories) || []) {
     for (const m of (cat && cat.models) || []) {
       const id = String((m && (m.name || m.model_name)) || "").trim();
       if (!id || seen[id]) continue;
@@ -266,209 +279,30 @@ function getCatalog(token, cb) {
         $persistentStore.write(JSON.stringify({ models: models, at: Date.now() }), CAT_KEY);
         return cb(null, models);
       }
-      // 拉取失败：有缓存用缓存，没有用静态兜底
       if (cached && cached.models && cached.models.length) return cb(null, cached.models);
       cb(null, FALLBACK_MODELS);
     }
   );
 }
-
-/* ---------------- 对话：llm/v2 主链路（标准 OpenAI 格式） ---------------- */
-// 解析上游 SSE，兼容两种格式：
-//   OpenAI（llm/v2）: data:{choices:[{delta:{content,reasoning_content},finish_reason}]}
-//   老版（office/v3）: data:{status:{code},data:{choices:[{delta:"str",type:"text"|"think"}]}}
-function parseUpstreamSSE(data) {
-  const r = { content: "", reasoning: "", finish: "stop", usage: null, bizErr: null };
-  for (const raw of (data || "").split("\n")) {
-    const line = raw.trim();
-    if (!line || line.indexOf("data:") !== 0) continue;
-    const payload = line.slice(5).trim();
-    if (payload === "[DONE]") continue;
-    let j;
-    try { j = JSON.parse(payload); } catch (e) { continue; }
-    if (j.usage) r.usage = j.usage;
-    if (j.status && j.status.code) {
-      r.bizErr = "上游业务错误 " + j.status.code + ": " + (j.message || j.status.msg || "");
-      break;
-    }
-    const choice = (j.choices && j.choices[0]) || (j.data && j.data.choices && j.data.choices[0]);
-    if (!choice) continue;
-    const d = choice.delta;
-    if (typeof d === "string") {
-      if (choice.type === "think") r.reasoning += d;
-      else r.content += d;
-    } else if (d && typeof d === "object") {
-      if (typeof d.content === "string") r.content += d.content;
-      if (typeof d.reasoning_content === "string") r.reasoning += d.reasoning_content;
-      if (typeof d.reasoning === "string") r.reasoning += d.reasoning;
-    }
-    if (choice.finish_reason) r.finish = choice.finish_reason === "sensitive" ? "content_filter" : choice.finish_reason;
-  }
-  return r;
-}
-// 组装 OpenAI 响应（model 回写成客户端请求值，参考 Agent2API sse_model_rewrite）
-function emitResult(reqBody, parsed) {
-  const id = "chatcmpl-raccoon-" + Date.now();
-  const modelName = reqBody.model || "Office-Raccoon-Default";
-  if (reqBody.stream) {
-    const chunks = [];
-    const push = (delta, fr) => {
-      chunks.push("data: " + JSON.stringify({
-        id: id, object: "chat.completion.chunk",
-        created: Math.floor(Date.now() / 1000), model: modelName,
-        choices: [{ index: 0, delta: delta, finish_reason: fr || null }],
-      }));
-    };
-    push({ role: "assistant", content: "" });
-    if (parsed.reasoning) push({ reasoning_content: parsed.reasoning });
-    const size = 48;
-    for (let i = 0; i < parsed.content.length; i += size) push({ content: parsed.content.slice(i, i + size) });
-    push({}, parsed.finish);
-    if (parsed.usage) chunks.push("data: " + JSON.stringify({
-      id: id, object: "chat.completion.chunk",
-      created: Math.floor(Date.now() / 1000), model: modelName,
-      choices: [], usage: parsed.usage,
-    }));
-    chunks.push("");
-    $done({
-      response: {
-        status: 200,
-        headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache", "Connection": "keep-alive" },
-        body: chunks.join("\n\n") + "\n\n",
-      },
-    });
-  } else {
-    jsonResp(200, {
-      id: id, object: "chat.completion",
-      created: Math.floor(Date.now() / 1000), model: modelName,
-      choices: [{
-        index: 0,
-        message: {
-          role: "assistant",
-          content: parsed.content,
-          reasoning_content: parsed.reasoning || undefined,
-        },
-        finish_reason: parsed.finish,
-      }],
-      usage: parsed.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-    });
-  }
-}
-function textOf(content) {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    return content.filter((p) => p && (p.type === "text" || typeof p.text === "string")).map((p) => p.text || "").join("\n");
-  }
-  return "";
-}
-// 主链路：llm/v2，OpenAI 兼容，body 原样透传（只强制 stream:true 由本脚本聚合）
-function chatViaLLM(token, reqBody, retried, cb) {
-  const upstream = {};
-  for (const k in reqBody) upstream[k] = reqBody[k];
-  upstream.stream = true;
-  if (typeof upstream.max_tokens === "number") upstream.max_tokens = Math.min(upstream.max_tokens, 100000);
-  $httpClient.post(
-    {
-      url: LLM + "/chat/completions",
-      headers: { "Content-Type": "application/json", Accept: "*/*", Authorization: "Bearer " + token },
-      body: JSON.stringify(upstream),
-      timeout: 600,
-    },
-    function (err, resp, data) {
-      if (err) return cb({ netErr: err });
-      const status = resp ? resp.status : 0;
-      if (status === 401 && !retried) return cb({ needRefresh: true });
-      if (status !== 200) return cb({ httpErr: status, data: data });
-      const parsed = parseUpstreamSSE(data);
-      if (parsed.bizErr) return cb({ httpErr: 400, data: JSON.stringify({ message: parsed.bizErr }) });
-      cb(null, parsed);
-    }
-  );
-}
-// 回退链路：office/v3 老接口（自定义 SSE + X-Org-Code）
-function mapLegacyModel(m) {
+// 模型名归一化：友好名 → 真实 id；已在目录里的 id 原样透传
+function mapModel(m) {
   const k = (m || "").toLowerCase().replace(/[^a-z0-9.]/g, "");
-  if (k.indexOf("glm") >= 0) return "glm5.3";
-  if (k.indexOf("kimi") >= 0) return "kimi-k3";
-  if (k.indexOf("deepseek") >= 0) return "DeepSeek4.1";
-  if (k.indexOf("sensechat5vision") >= 0) return "SenseChat-5-Vision";
-  if (k.indexOf("sensechat5") >= 0) return "SenseChat-5";
-  return "Office-Raccoon-Default";
-}
-function chatViaLegacy(token, reqBody, cb) {
-  const msgs = (reqBody.messages || [])
-    .map((m) => ({ role: m.role, type: "text", content: textOf(m.content) }))
-    .filter((m) => m.content.length > 0);
-  if (!msgs.length) return cb({ httpErr: 400, data: '{"message":"messages 为空"}' });
-  const upstream = {
-    stream: true,
-    max_new_tokens: Math.min(parseInt(reqBody.max_tokens, 10) || 2000, 8000),
-    temperature: typeof reqBody.temperature === "number" ? reqBody.temperature : 0.6,
-    messages: msgs,
-    verbose: true,
-    model: mapLegacyModel(reqBody.model),
-  };
-  $httpClient.post(
-    {
-      url: LEGACY,
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, "X-Org-Code": "" },
-      body: JSON.stringify(upstream),
-      timeout: 300,
-    },
-    function (err, resp, data) {
-      if (err) return cb({ netErr: err });
-      const status = resp ? resp.status : 0;
-      if (status !== 200) return cb({ httpErr: status, data: data });
-      cb(null, parseUpstreamSSE(data));
+  if (!k) return "raccoon-chat-ml-5-5";
+  if (k.indexOf("glm") >= 0) return "sn-glm-5-3-flash";
+  if (k.indexOf("raccoon") >= 0 || k.indexOf("office") >= 0) {
+    const cat = loadCatalog();
+    if (cat && cat.models) {
+      for (const mm of cat.models) if (mm.id.toLowerCase() === (m || "").toLowerCase()) return mm.id;
     }
-  );
-}
-function describeErr(err) {
-  if (err.netErr) return "网络错误 " + err.netErr;
-  if (err.httpErr) return "HTTP " + err.httpErr;
-  return "未知错误";
-}
-function chatCompletion(reqBody, stage, retried) {
-  ensureToken(function (e, token) {
-    if (e) return errResp(401, "小浣熊代理: " + e.message);
-    chatViaLLM(token, reqBody, stage === "llm", function (err, parsed) {
-      if (!err) return emitResult(reqBody, parsed);
-      if (err.needRefresh) {
-        return refreshToken(function (e2, t2) {
-          if (e2) return errResp(401, "小浣熊代理: token 刷新失败，" + e2.message);
-          chatCompletion(reqBody, "llm", true);
-        });
-      }
-      // llm/v2 失败 → 回退老接口（业务配额错误除外：回退无意义且烧额度）
-      const quotaHit = err.httpErr && /exceed_error|count_exceed|daily/i.test(err.data || "");
-      if (stage !== "legacy" && !quotaHit) {
-        chatViaLegacy(token, reqBody, function (e2, p2) {
-          if (!e2) return emitResult(reqBody, p2);
-          if (e2.httpErr) {
-            let msg = e2.data || "";
-            try { const j = JSON.parse(e2.data); msg = (j.error && (j.error.message || j.error.details)) || j.message || msg; } catch (x) {}
-            return errResp(502, "llm/v2 " + describeErr(err) + "；office/v3 " + describeErr(e2) + ": " + msg);
-          }
-          errResp(502, "上游请求失败: " + describeErr(err) + " / " + describeErr(e2));
-        });
-        return;
-      }
-      if (err.httpErr) {
-        let msg = err.data || "";
-        try { const j = JSON.parse(err.data); msg = (j.error && (j.error.message || j.error.details)) || j.message || msg; } catch (x) {}
-        return errResp(502, "上游 " + err.httpErr + ": " + msg);
-      }
-      errResp(502, "上游请求失败: " + describeErr(err));
-    });
-  });
+    if (k === "officeraccoondefault") return "raccoon-chat-ml-5-5";
+  }
+  return m; // 其余原样透传（目录 id、kimi-k3 等由上游裁决）
 }
 
-/* ---------------- 签到（cron / GET /v1/checkin 触发，参考 Agent2API raccoon/balance.rs） ---------------- */
-// 北京时间今天（上游自然日=UTC+8 零点，不跟设备时区）
+/* ---------------- 签到（cron / GET /v1/checkin，参考 Agent2API raccoon/balance.rs） ---------------- */
 function beijingToday() {
   return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 }
-// 桌面客户端身份头（Agent2API desktop_client_headers 同款）
 function desktopHeaders() {
   return { "X-Client-Platform": "desktop-windows", "X-Client-Version": "v1.0.0", "X-Raccoon-Language": "zh" };
 }
@@ -482,7 +316,6 @@ function toastText(data) {
   }
   return parts.join(" | ");
 }
-// 解包 {code,message,data} 的 GET/POST
 function requestJson(method, path2, token, headers, timeout, cb) {
   const h = { Accept: "application/json", Authorization: "Bearer " + token };
   for (const k in headers) h[k] = headers[k];
@@ -505,42 +338,41 @@ function runCheckin(cb) {
     requestJson("GET", "/api/web/office/v3/setting_info", token, desktopHeaders(), 20, function (err1, info) {
       const grantNote = err1 ? ("发放接口: " + err1.message) : toastText(info);
       requestJson("GET", "/api/web/points/v1/bills?paging.limit=20&paging.offset=0", token, {}, 25, function (err2, bills) {
-      let sum = 0;
-      const names = [];
-      const today = beijingToday();
-      for (const it of (bills && bills.items) || []) {
-        const pts = Number(it.points || 0);
-        const createdAt = String(it.created_at || "");
-        if (pts > 0 && createdAt.slice(0, 10) === today) {
-          sum += pts;
-          names.push((it.event_name || "积分") + " +" + pts);
-        }
-      }
-      // ③ 总余额（失败降级，不影响签到结果）
-      requestJson("GET", "/api/web/points/v1/balance", token, {}, 20, function (err3, bal) {
-        const wallets = [];
-        if (bal && typeof bal === "object") {
-          for (const pair of [["daily_points", "每日"], ["monthly_points", "会员"], ["reward_points", "奖励"], ["topup_points", "充值"]]) {
-            const v = Number(bal[pair[0]]);
-            if (!isNaN(v)) wallets.push(pair[1] + " " + v);
+        let sum = 0;
+        const names = [];
+        const today = beijingToday();
+        for (const it of (bills && bills.items) || []) {
+          const pts = Number(it.points || 0);
+          const createdAt = String(it.created_at || "");
+          if (pts > 0 && createdAt.slice(0, 10) === today) {
+            sum += pts;
+            names.push((it.event_name || "积分") + " +" + pts);
           }
         }
-        const avail = bal ? Number(bal.available_points) : NaN;
-        const balanceLine = isNaN(avail)
-          ? (err3 ? "余额查询失败: " + err3.message : "")
-          : ("总余额 " + avail + "（" + wallets.join(" / ") + "）");
-        const r = { ok: sum > 0, today: today, sum: sum, entries: names, balance: isNaN(avail) ? null : avail, wallets: wallets, grant_note: grantNote, err_grant: err1 && err1.message, err_bills: err2 && err2.message, err_balance: err3 && err3.message };
-        if (sum > 0) {
-          r.title = "小浣熊签到成功"; r.subtitle = "今日 +" + sum + " · " + (isNaN(avail) ? "余额未知" : "余额 " + avail);
-          r.body = (names.join("；") + (balanceLine ? "；" + balanceLine : "")) + (grantNote ? "（" + grantNote + "）" : "");
-        } else if (err1 && err2) {
-          r.title = "小浣熊签到失败"; r.subtitle = "发放与账单查询均失败"; r.body = r.err_grant + "；" + r.err_bills;
-        } else {
-          r.title = "小浣熊签到"; r.subtitle = "账单未见今日入账" + (isNaN(avail) ? "" : " · 余额 " + avail);
-          r.body = grantNote || (err2 ? "账单: " + r.err_bills : "可能今日已领过或发放延迟");
-        }
-        cb(r);
-      });
+        requestJson("GET", "/api/web/points/v1/balance", token, {}, 20, function (err3, bal) {
+          const wallets = [];
+          if (bal && typeof bal === "object") {
+            for (const pair of [["daily_points", "每日"], ["monthly_points", "会员"], ["reward_points", "奖励"], ["topup_points", "充值"]]) {
+              const v = Number(bal[pair[0]]);
+              if (!isNaN(v)) wallets.push(pair[1] + " " + v);
+            }
+          }
+          const avail = bal ? Number(bal.available_points) : NaN;
+          const balanceLine = isNaN(avail)
+            ? (err3 ? "余额查询失败: " + err3.message : "")
+            : ("总余额 " + avail + "（" + wallets.join(" / ") + "）");
+          const r = { ok: sum > 0, today: today, sum: sum, entries: names, balance: isNaN(avail) ? null : avail, wallets: wallets, grant_note: grantNote, err_grant: err1 && err1.message, err_bills: err2 && err2.message, err_balance: err3 && err3.message };
+          if (sum > 0) {
+            r.title = "小浣熊签到成功"; r.subtitle = "今日 +" + sum + " · " + (isNaN(avail) ? "余额未知" : "余额 " + avail);
+            r.body = (names.join("；") + (balanceLine ? "；" + balanceLine : "")) + (grantNote ? "（" + grantNote + "）" : "");
+          } else if (err1 && err2) {
+            r.title = "小浣熊签到失败"; r.subtitle = "发放与账单查询均失败"; r.body = r.err_grant + "；" + r.err_bills;
+          } else {
+            r.title = "小浣熊签到"; r.subtitle = "账单未见今日入账" + (isNaN(avail) ? "" : " · 余额 " + avail);
+            r.body = grantNote || (err2 ? "账单: " + r.err_bills : "可能今日已领过或发放延迟");
+          }
+          cb(r);
+        });
       });
     });
   });
@@ -556,52 +388,56 @@ if (typeof $request === "undefined" || !$request || !$request.url) {
   });
 } else {
   const path = $request.url.split("?")[0];
-  if (/\/checkin\/?$/.test(path)) {
-    // 手动签到端点：GET /v1/checkin
-    runCheckin(function (r) { jsonResp(200, r); });
-  } else if (/\/models\/?$/.test(path)) {
-  ensureToken(function (e, token) {
-    if (e) {
-      return jsonResp(200, {
-        object: "list",
-        data: FALLBACK_MODELS.map((m) => ({ id: m.id, object: "model", owned_by: "sensetime" })),
-      });
-    }
-    getCatalog(token, function (e2, models) {
-      jsonResp(200, {
-        object: "list",
-        data: (models.length ? models : FALLBACK_MODELS).map((m) => ({
-          id: m.id, object: "model", owned_by: "sensetime",
-          display_name: m.name || m.id,
-        })),
+  if (/\/chat\/completions\/?$/.test(path)) {
+    // ★ 真流式：只改写请求（URL → llm/v2 网关、Bearer token、模型名归一化），
+    //   不返回 response —— 上游的标准 OpenAI SSE 流由 Surge 原生透传给客户端。
+    //   token 过期在请求前预检（ensureToken），保证转发出去的一定有效。
+    ensureToken(function (e, token) {
+      if (e) return errResp(401, "小浣熊代理: " + e.message);
+      let reqBody;
+      try { reqBody = JSON.parse($request.body || "{}"); } catch (err) { return errResp(400, "请求体不是合法 JSON"); }
+      reqBody.model = mapModel(reqBody.model);
+      // stream 原样透传：客户端要流式给流式，要 JSON 给 JSON（llm/v2 是标准 OpenAI 网关）
+      const headers = { "Content-Type": "application/json", Accept: "*/*", Authorization: "Bearer " + token };
+      $done({
+        url: LLM + "/chat/completions",
+        headers: headers,
+        body: JSON.stringify(reqBody),
       });
     });
-  });
-} else if (/\/chat\/completions\/?$/.test(path)) {
-  let reqBody = null;
-  try { reqBody = JSON.parse($request.body || "{}"); } catch (e) { reqBody = null; }
-  if (!reqBody) errResp(400, "请求体不是合法 JSON");
-  else chatCompletion(reqBody, "llm", false);
-} else if (/\/probe\/?$/.test(path)) {
-  ensureToken(function (e, token) {
-    if (e) return errResp(401, "token: " + e.message);
-    $httpClient.get(
-      { url: LLM + "/model_catalog", headers: { Authorization: "Bearer " + token, Accept: "application/json" }, timeout: 15 },
-      function (err, resp, data) {
-        $done({
-          response: {
-            status: 200,
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-            body: JSON.stringify({
-              http: resp ? resp.status : 0,
-              token_head: token.slice(0, 12),
-              body_head: String(data || err || "").slice(0, 3000),
-            }),
-          },
+  } else if (/\/models\/?$/.test(path)) {
+    ensureToken(function (e, token) {
+      if (e) {
+        return jsonResp(200, {
+          object: "list",
+          data: FALLBACK_MODELS.map(function (m) { return { id: m.id, object: "model", owned_by: "sensetime" }; }),
         });
       }
-    );
-  });
+      getCatalog(token, function (e2, models) {
+        jsonResp(200, {
+          object: "list",
+          data: (models.length ? models : FALLBACK_MODELS).map(function (m) {
+            return { id: m.id, object: "model", owned_by: "sensetime" };
+          }),
+        });
+      });
+    });
+  } else if (/\/checkin\/?$/.test(path)) {
+    runCheckin(function (r) { jsonResp(200, r); });
+  } else if (/\/probe\/?$/.test(path)) {
+    ensureToken(function (e, token) {
+      if (e) return errResp(401, "token: " + e.message);
+      $httpClient.get(
+        { url: LLM + "/model_catalog", headers: { Authorization: "Bearer " + token, Accept: "application/json" }, timeout: 15 },
+        function (err, resp, data) {
+          jsonResp(200, {
+            http: resp ? resp.status : 0,
+            token_head: token.slice(0, 12),
+            body_head: String(data || err || "").slice(0, 3000),
+          });
+        }
+      );
+    });
   } else {
     errResp(404, "Raccoon OpenAI Proxy: 支持 /v1/models、/v1/chat/completions、/v1/checkin、/v1/probe");
   }
