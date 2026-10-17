@@ -498,35 +498,49 @@ function requestJson(method, path2, token, headers, timeout, cb) {
     cb(null, j.data !== undefined && j.data !== null ? j.data : j);
   });
 }
-// 每日签到：① setting_info 触发发放（按天幂等）② bills 核对今日入账
+// 每日签到：① setting_info 触发发放（按天幂等）② bills 核对今日入账 ③ balance 查总余额
 function runCheckin(cb) {
   ensureToken(function (e, token) {
     if (e) return cb({ ok: false, title: "小浣熊签到失败", subtitle: e.message, body: "" });
     requestJson("GET", "/api/web/office/v3/setting_info", token, desktopHeaders(), 20, function (err1, info) {
       const grantNote = err1 ? ("发放接口: " + err1.message) : toastText(info);
       requestJson("GET", "/api/web/points/v1/bills?paging.limit=20&paging.offset=0", token, {}, 25, function (err2, bills) {
-        let sum = 0;
-        const names = [];
-        const today = beijingToday();
-        for (const it of (bills && bills.items) || []) {
-          const pts = Number(it.points || 0);
-          const createdAt = String(it.created_at || "");
-          if (pts > 0 && createdAt.slice(0, 10) === today) {
-            sum += pts;
-            names.push((it.event_name || "积分") + " +" + pts);
+      let sum = 0;
+      const names = [];
+      const today = beijingToday();
+      for (const it of (bills && bills.items) || []) {
+        const pts = Number(it.points || 0);
+        const createdAt = String(it.created_at || "");
+        if (pts > 0 && createdAt.slice(0, 10) === today) {
+          sum += pts;
+          names.push((it.event_name || "积分") + " +" + pts);
+        }
+      }
+      // ③ 总余额（失败降级，不影响签到结果）
+      requestJson("GET", "/api/web/points/v1/balance", token, {}, 20, function (err3, bal) {
+        const wallets = [];
+        if (bal && typeof bal === "object") {
+          for (const pair of [["daily_points", "每日"], ["monthly_points", "会员"], ["reward_points", "奖励"], ["topup_points", "充值"]]) {
+            const v = Number(bal[pair[0]]);
+            if (!isNaN(v)) wallets.push(pair[1] + " " + v);
           }
         }
-        const r = { ok: sum > 0, today: today, sum: sum, entries: names, grant_note: grantNote, err_grant: err1 && err1.message, err_bills: err2 && err2.message };
+        const avail = bal ? Number(bal.available_points) : NaN;
+        const balanceLine = isNaN(avail)
+          ? (err3 ? "余额查询失败: " + err3.message : "")
+          : ("总余额 " + avail + "（" + wallets.join(" / ") + "）");
+        const r = { ok: sum > 0, today: today, sum: sum, entries: names, balance: isNaN(avail) ? null : avail, wallets: wallets, grant_note: grantNote, err_grant: err1 && err1.message, err_bills: err2 && err2.message, err_balance: err3 && err3.message };
         if (sum > 0) {
-          r.title = "小浣熊签到成功"; r.subtitle = "今日已入账 " + sum + " 积分";
-          r.body = names.join("；") + (grantNote ? "（" + grantNote + "）" : "");
+          r.title = "小浣熊签到成功"; r.subtitle = "今日 +" + sum + " · " + (isNaN(avail) ? "余额未知" : "余额 " + avail);
+          r.body = (names.join("；") + (balanceLine ? "；" + balanceLine : "")) + (grantNote ? "（" + grantNote + "）" : "");
         } else if (err1 && err2) {
           r.title = "小浣熊签到失败"; r.subtitle = "发放与账单查询均失败"; r.body = r.err_grant + "；" + r.err_bills;
         } else {
-          r.title = "小浣熊签到"; r.subtitle = "接口已调用，账单未见今日入账";
+          r.title = "小浣熊签到"; r.subtitle = "账单未见今日入账" + (isNaN(avail) ? "" : " · 余额 " + avail);
           r.body = grantNote || (err2 ? "账单: " + r.err_bills : "可能今日已领过或发放延迟");
         }
         cb(r);
+      });
       });
     });
   });
