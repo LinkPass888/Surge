@@ -463,9 +463,89 @@ function chatCompletion(reqBody, stage, retried) {
   });
 }
 
+/* ---------------- 签到（cron / GET /v1/checkin 触发，参考 Agent2API raccoon/balance.rs） ---------------- */
+// 北京时间今天（上游自然日=UTC+8 零点，不跟设备时区）
+function beijingToday() {
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+}
+// 桌面客户端身份头（Agent2API desktop_client_headers 同款）
+function desktopHeaders() {
+  return { "X-Client-Platform": "desktop-windows", "X-Client-Version": "v1.0.0", "X-Raccoon-Language": "zh" };
+}
+function toastText(data) {
+  if (!data) return "";
+  const parts = [];
+  for (const key of ["point_grant_toast", "point_grant_popups"]) {
+    const v = data[key];
+    if (v === undefined || v === null) continue;
+    try { parts.push(typeof v === "string" ? v : JSON.stringify(v).slice(0, 200)); } catch (e) {}
+  }
+  return parts.join(" | ");
+}
+// 解包 {code,message,data} 的 GET/POST
+function requestJson(method, path2, token, headers, timeout, cb) {
+  const h = { Accept: "application/json", Authorization: "Bearer " + token };
+  for (const k in headers) h[k] = headers[k];
+  const opt = { url: "https://xiaohuanxiong.com" + path2, headers: h, timeout: timeout || 20 };
+  const fn = method === "POST" ? $httpClient.post : $httpClient.get;
+  fn(opt, function (err, resp, data) {
+    if (err) return cb(new Error("网络失败: " + err), null);
+    if (resp && resp.status === 401) return cb(new Error("登录态已过期（401）"), null);
+    if (!resp || resp.status !== 200) return cb(new Error("HTTP " + (resp ? resp.status : 0)), null);
+    let j;
+    try { j = JSON.parse(data); } catch (e) { return cb(new Error("响应解析失败"), null); }
+    if (typeof j.code === "number" && j.code !== 0) return cb(new Error(j.message || ("code=" + j.code)), null);
+    cb(null, j.data !== undefined && j.data !== null ? j.data : j);
+  });
+}
+// 每日签到：① setting_info 触发发放（按天幂等）② bills 核对今日入账
+function runCheckin(cb) {
+  ensureToken(function (e, token) {
+    if (e) return cb({ ok: false, title: "小浣熊签到失败", subtitle: e.message, body: "" });
+    requestJson("GET", "/api/web/office/v3/setting_info", token, desktopHeaders(), 20, function (err1, info) {
+      const grantNote = err1 ? ("发放接口: " + err1.message) : toastText(info);
+      requestJson("GET", "/api/web/points/v1/bills?paging.limit=20&paging.offset=0", token, {}, 25, function (err2, bills) {
+        let sum = 0;
+        const names = [];
+        const today = beijingToday();
+        for (const it of (bills && bills.items) || []) {
+          const pts = Number(it.points || 0);
+          const createdAt = String(it.created_at || "");
+          if (pts > 0 && createdAt.slice(0, 10) === today) {
+            sum += pts;
+            names.push((it.event_name || "积分") + " +" + pts);
+          }
+        }
+        const r = { ok: sum > 0, today: today, sum: sum, entries: names, grant_note: grantNote, err_grant: err1 && err1.message, err_bills: err2 && err2.message };
+        if (sum > 0) {
+          r.title = "小浣熊签到成功"; r.subtitle = "今日已入账 " + sum + " 积分";
+          r.body = names.join("；") + (grantNote ? "（" + grantNote + "）" : "");
+        } else if (err1 && err2) {
+          r.title = "小浣熊签到失败"; r.subtitle = "发放与账单查询均失败"; r.body = r.err_grant + "；" + r.err_bills;
+        } else {
+          r.title = "小浣熊签到"; r.subtitle = "接口已调用，账单未见今日入账";
+          r.body = grantNote || (err2 ? "账单: " + r.err_bills : "可能今日已领过或发放延迟");
+        }
+        cb(r);
+      });
+    });
+  });
+}
+
 /* ---------------- 入口 ---------------- */
-const path = ($request.url || "").split("?")[0];
-if (/\/models\/?$/.test(path)) {
+// cron / generic 手动运行：签到 + 系统通知（无 $request 环境）
+if (typeof $request === "undefined" || !$request || !$request.url) {
+  runCheckin(function (r) {
+    $notification.post(r.title, r.subtitle, r.body || "");
+    console.log("[raccoon-checkin] " + JSON.stringify(r));
+    $done({});
+  });
+} else {
+  const path = $request.url.split("?")[0];
+  if (/\/checkin\/?$/.test(path)) {
+    // 手动签到端点：GET /v1/checkin
+    runCheckin(function (r) { jsonResp(200, r); });
+  } else if (/\/models\/?$/.test(path)) {
   ensureToken(function (e, token) {
     if (e) {
       return jsonResp(200, {
@@ -508,6 +588,7 @@ if (/\/models\/?$/.test(path)) {
       }
     );
   });
-} else {
-  errResp(404, "Raccoon OpenAI Proxy: 支持 /v1/models、/v1/chat/completions（/v1/probe 调试）");
+  } else {
+    errResp(404, "Raccoon OpenAI Proxy: 支持 /v1/models、/v1/chat/completions、/v1/checkin、/v1/probe");
+  }
 }
