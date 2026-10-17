@@ -1,12 +1,13 @@
 #!name=小浣熊 OpenAI 反代
-#!desc=把商汤小浣熊包装成 OpenAI 兼容 API，账号密码自动登录；主链路 llm/v2 网关 + office/v3 自动回退，模型目录动态获取
+#!desc=把商汤小浣熊包装成 OpenAI 兼容 API，账号密码自动登录；主链路 llm/v2 网关 + office/v3 自动回退，模型目录动态获取；附每日自动签到
 #!author=LinkPass888
 #!category=工具
-#!arguments=nation:86,phone:none,password:none,token:none
-#!arguments-desc=填手机号+密码自动登录，或填 token 直接使用；不用的项保持 none
+#!arguments=nation:86,phone:none,password:none,token:none,cron:12 0 * * *
+#!arguments-desc=填手机号+密码自动登录，或填 token 直接使用；不用的项保持 none。cron 为签到时间（cron 表达式，设备本地时区，默认每天 0:12）
 
 [MITM]
 hostname = %APPEND% xiaohuanxiong.com
 
 [Script]
-小浣熊反代 = type=http-request,pattern=^https://xiaohuanxiong\.com/v1/(chat/completions|models|probe),requires-body=true,max-size=10485760,engine=webview,timeout=600,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/main/js/raccoon-openai.js,argument="nation={{{nation}}}&phone={{{phone}}}&password={{{password}}}&token={{{token}}}"
+小浣熊反代 = type=http-request,pattern=^https://xiaohuanxiong\.com/v1/(chat/completions|models|checkin|probe),requires-body=true,max-size=10485760,engine=webview,timeout=600,script-path=https://raw.githubusercontent.com/LinkPass888/Surge/main/js/raccoon-openai.js,argument="nation={{{nation}}}&phone={{{phone}}}&password={{{password}}}&token={{{token}}}"
+小浣熊每日签到 = type=cron,cronexp="{{{cron}}}",script-path=https://raw.githubusercontent.com/LinkPass888/Surge/main/js/raccoon-openai.js,timeout=90,argument="nation={{{nation}}}&phone={{{phone}}}&password={{{password}}}&token={{{token}}}"
