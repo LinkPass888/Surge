@@ -1,38 +1,21 @@
-# NAME: AppleIntelligence
-# AUTHOR: LinkPass888
-# UPDATED: 2026-11-22
-# TOTAL: 26
+#NAME: AppleIntelligence
+#AUTHOR: LinkPass888
+#REPO: https://github.com/Serein1202/ios_rule_script-blackmatrix7
+#UPDATED: 2026-11-22
+#MERGED: 2026-06-15 17:56
+#TOTAL: 9
 
-# Apple Intelligence & Siri 核心域名
-DOMAIN,appleintelligence.apple.com
-DOMAIN,appleintelligence2.apple.com
+//Apple Intelligence 核心域名
 DOMAIN,genai.apple.com
-DOMAIN,intelligence.apple.com
-DOMAIN,siri.apple.com
-DOMAIN,siri-api.apple.com
-DOMAIN,siri-intent.apple.com
-DOMAIN,siri-companion.apple.com
-DOMAIN,afm.apple.com
-DOMAIN,afm-api.apple.com
-DOMAIN,afm.cloud.apple.com
 
-# Siri 传统接口与地区校验
-DOMAIN-SUFFIX,guzzoni.apple.com
+//Private Relay / iCloud+ 中继（来自Serein1202）
 DOMAIN-SUFFIX,smoot.apple.com
-DOMAIN-SUFFIX,gspe1-ssl.ls.apple.com
-
-# Private Cloud Compute (PCC) 与 OHTTP 中继
 DOMAIN-SUFFIX,apple-relay.apple.com
 DOMAIN-SUFFIX,apple-relay.cloudflare.com
 DOMAIN-SUFFIX,apple-relay.fastly-edge.com
 DOMAIN-SUFFIX,apple-relay.akamaized.net
-DOMAIN-SUFFIX,cp4.cloudflare.com
-DOMAIN-SUFFIX,gateway.icloud.com
+DOMAIN-SUFFIX,apple-relay.mask.apple-dns.net
+DOMAIN-SUFFIX,guzzoni.apple.com
 
-# 隐私中继 Mask 相关
-DOMAIN-SUFFIX,mask.icloud.com
-DOMAIN-SUFFIX,mask-h2.icloud.com
-DOMAIN,mask-api.icloud.com
-DOMAIN-SUFFIX,mask.apple-dns.net
-DOMAIN,mask-t.apple-dns.net
-DOMAIN,mask-api.fe.apple-dns.net
+//IP段兜底
+IP-CIDR,17.0.0.0/8,no-resolve
