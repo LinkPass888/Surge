@@ -1,13 +1,25 @@
 # NAME: AppleIntelligence
 # AUTHOR: LinkPass888
 # UPDATED: 2026-11-22
-# TOTAL: 16
+# TOTAL: 26
 
-# Siri 与 Apple Intelligence 核心及地区校验
+# Apple Intelligence & Siri 核心域名
+DOMAIN,appleintelligence.apple.com
+DOMAIN,appleintelligence2.apple.com
 DOMAIN,genai.apple.com
+DOMAIN,intelligence.apple.com
+DOMAIN,siri.apple.com
+DOMAIN,siri-api.apple.com
+DOMAIN,siri-intent.apple.com
+DOMAIN,siri-companion.apple.com
+DOMAIN,afm.apple.com
+DOMAIN,afm-api.apple.com
+DOMAIN,afm.cloud.apple.com
+
+# Siri 传统接口与地区校验
 DOMAIN-SUFFIX,guzzoni.apple.com
 DOMAIN-SUFFIX,smoot.apple.com
-DOMAIN,gspe1-ssl.ls.apple.com
+DOMAIN-SUFFIX,gspe1-ssl.ls.apple.com
 
 # Private Cloud Compute (PCC) 与 OHTTP 中继
 DOMAIN-SUFFIX,apple-relay.apple.com
