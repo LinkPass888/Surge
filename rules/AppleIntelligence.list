@@ -24,7 +24,3 @@ DOMAIN,mask-api.icloud.com
 DOMAIN-SUFFIX,mask.apple-dns.net
 DOMAIN,mask-t.apple-dns.net
 DOMAIN,mask-api.fe.apple-dns.net
-
-AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,apple-relay.cloudflare.com)),REJECT-NO-DROP
-AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,apple-relay.fastly-edge.com)),REJECT-NO-DROP
-AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,apple-relay.apple.com)),REJECT-NO-DROP
