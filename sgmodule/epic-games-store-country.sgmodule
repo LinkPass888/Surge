@@ -1,0 +1,13 @@
+#!name=Epic Store地区更改
+#!desc=将 Epic Games Store iOS 首页请求的 country 参数从 JP 改为 TW。启用 HTTPS 解密后生效。
+#!author=LinkPass
+#!category=应用增强
+#!arguments=from_country:JP,to_country:TW
+#!arguments-desc=修改原 country 和替换后的 country 代码。
+
+[MITM]
+hostname = %APPEND% egs-platform-service.store.epicgames.com
+
+[URL Rewrite]
+^(https:\/\/egs-platform-service\.store\.epicgames\.com\/api\/v2\/public\/discover\/home\?)(country=){{{from_country}}}(&[^#]*)?$ $1$2{{{to_country}}}$3 header
+^(https:\/\/egs-platform-service\.store\.epicgames\.com\/api\/v2\/public\/discover\/home\?[^#]*&)(country=){{{from_country}}}(&[^#]*)?$ $1$2{{{to_country}}}$3 header
